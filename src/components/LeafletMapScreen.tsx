@@ -128,7 +128,12 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
     }).addTo(leafletMapRef.current);
 
     // @ts-ignore: leaflet heat plugin adds heatLayer to L
-    const heatLayer = (L as any).heatLayer([], { radius: 25, blur: 15, maxZoom: 17 });
+    const heatLayer = (L as any).heatLayer([], { 
+      radius: 40, 
+      blur: 15, 
+      maxZoom: 12,
+      minOpacity: 0.35
+    });
     heatLayer.addTo(leafletMapRef.current);
     heatLayerRef.current = heatLayer;
 
@@ -160,7 +165,7 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
 
       // leaflet.heat expects [lat, lng, intensity]
       // coordinates[1] is lat, coordinates[0] is lng
-      const intensity = report.priority === 'high' ? 0.8 : (report.priority === 'medium' ? 0.6 : 0.4);
+      const intensity = report.priority === 'high' ? 1.0 : (report.priority === 'medium' ? 0.8 : 0.6);
       heatPoints.push([coordinates[1], coordinates[0], intensity]);
 
       const customIcon = L.divIcon({
