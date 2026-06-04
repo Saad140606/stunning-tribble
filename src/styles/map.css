@@ -1,0 +1,86 @@
+/* Fix Karachi — Map Styles */
+
+/* ---- Leaflet Container ---- */
+.leaflet-container {
+  background: #0A1628 !important;
+}
+
+/* ---- Controls ---- */
+.leaflet-control-zoom {
+  border: 1px solid rgba(0, 212, 255, 0.15) !important;
+  border-radius: 10px !important;
+  overflow: hidden;
+}
+
+.leaflet-control-zoom a {
+  background: #0F2040 !important;
+  color: #00D4FF !important;
+  border-color: rgba(0, 212, 255, 0.1) !important;
+  width: 32px !important;
+  height: 32px !important;
+  line-height: 32px !important;
+  font-size: 16px !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: #162B52 !important;
+}
+
+/* ---- Popups ---- */
+.leaflet-popup-content-wrapper {
+  background: #0F2040 !important;
+  color: #F0F4FF !important;
+  border: 1px solid rgba(0, 212, 255, 0.15) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  color: #F0F4FF !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.leaflet-popup-tip-container {
+  display: none;
+}
+
+.leaflet-popup-close-button {
+  color: #8BA3C7 !important;
+  font-size: 18px !important;
+  top: 6px !important;
+  right: 10px !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #00D4FF !important;
+}
+
+/* ---- Attribution ---- */
+.leaflet-control-attribution {
+  background: rgba(10, 22, 40, 0.85) !important;
+  color: #4A6080 !important;
+  font-size: 9px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #00D4FF !important;
+}
+
+/* ---- Custom Marker Styles ---- */
+.custom-leaflet-marker {
+  border: none !important;
+  background: transparent !important;
+}
+
+/* ---- Marker Animations ---- */
+@keyframes marker-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 212, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 212, 255, 0); }
+}
+
+.marker-active {
+  animation: marker-pulse 2s infinite;
+}

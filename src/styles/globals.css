@@ -1,0 +1,404 @@
+@custom-variant dark (&:is(.dark *));
+
+/* ========================================
+   FIX KARACHI — Design System
+   ======================================== */
+
+:root {
+  /* ---- Core Colors ---- */
+  --font-size: 16px;
+  --background: #0A1628;
+  --foreground: #F0F4FF;
+  --card: #0F2040;
+  --card-foreground: #F0F4FF;
+  --card-hover: #162B52;
+  --popover: #0F2040;
+  --popover-foreground: #F0F4FF;
+
+  /* Primary = Electric Cyan */
+  --primary: #00D4FF;
+  --primary-foreground: #0A1628;
+
+  /* Secondary */
+  --secondary: #162B52;
+  --secondary-foreground: #F0F4FF;
+
+  /* Muted */
+  --muted: #162B52;
+  --muted-foreground: #8BA3C7;
+
+  /* Accent */
+  --accent: #00D4FF;
+  --accent-foreground: #0A1628;
+  --accent2: #FF6B35;
+
+  /* Semantic */
+  --success: #00C896;
+  --warning: #FFB800;
+  --destructive: #FF3B3B;
+  --destructive-foreground: #FFFFFF;
+
+  /* Border & Input */
+  --border: rgba(0, 212, 255, 0.12);
+  --input: rgba(0, 212, 255, 0.08);
+  --input-background: #0F2040;
+  --switch-background: #1A3050;
+  --ring: rgba(0, 212, 255, 0.4);
+
+  /* Category Colors */
+  --color-pothole: #FF6B35;
+  --color-garbage: #00C896;
+  --color-streetlight: #FFB800;
+  --color-water: #00D4FF;
+  --color-sewerage: #8B5CF6;
+  --color-safety: #FF3B3B;
+
+  /* Typography */
+  --font-heading: 'Plus Jakarta Sans', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-urdu: 'Noto Nastaliq Urdu', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Font Weights */
+  --font-weight-normal: 400;
+  --font-weight-medium: 500;
+
+  /* Border Radius */
+  --radius: 10px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Chart Colors */
+  --chart-1: #00D4FF;
+  --chart-2: #00C896;
+  --chart-3: #FFB800;
+  --chart-4: #8B5CF6;
+  --chart-5: #FF6B35;
+
+  /* Sidebar (not used but kept for radix-ui compat) */
+  --sidebar: #0A1628;
+  --sidebar-foreground: #F0F4FF;
+  --sidebar-primary: #00D4FF;
+  --sidebar-primary-foreground: #0A1628;
+  --sidebar-accent: #162B52;
+  --sidebar-accent-foreground: #F0F4FF;
+  --sidebar-border: rgba(0, 212, 255, 0.12);
+  --sidebar-ring: rgba(0, 212, 255, 0.4);
+}
+
+/* ---- Tailwind v4 Theme Binding ---- */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-input-background: var(--input-background);
+  --color-switch-background: var(--switch-background);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+/* ---- Base Layer ---- */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Headings use Plus Jakarta Sans */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+  }
+
+  /* Monospace numbers */
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}
+
+/* ---- RTL Support ---- */
+html[dir="rtl"] body,
+html[dir="rtl"] * {
+  font-family: var(--font-urdu);
+}
+
+html[dir="rtl"] h1,
+html[dir="rtl"] h2,
+html[dir="rtl"] h3,
+html[dir="rtl"] h4,
+html[dir="rtl"] h5,
+html[dir="rtl"] h6 {
+  font-family: var(--font-urdu);
+}
+
+html[dir="rtl"] .font-mono {
+  font-family: var(--font-mono);
+}
+
+html[dir="rtl"] .font-latin {
+  font-family: var(--font-body);
+}
+
+/* ---- Scrollbar Styling ---- */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 212, 255, 0.15);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 212, 255, 0.3);
+}
+
+/* ---- Shimmer / Skeleton Animation ---- */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #0F2040 25%,
+    #1A3560 50%,
+    #0F2040 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* ---- Pulse Ring Animation ---- */
+@keyframes pulse-ring {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+.pulse-ring::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid #00D4FF;
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+/* ---- Glow Effect ---- */
+.glow-cyan {
+  box-shadow: 0 0 20px rgba(0, 212, 255, 0.15),
+              0 0 40px rgba(0, 212, 255, 0.05);
+}
+
+/* ---- Card Styles ---- */
+.fk-card {
+  background: #0F2040;
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  border-radius: 16px;
+  transition: all 0.2s ease;
+}
+
+.fk-card:hover {
+  background: #162B52;
+  border-color: rgba(0, 212, 255, 0.25);
+}
+
+.fk-card-selected {
+  border-color: rgba(0, 212, 255, 0.5) !important;
+}
+
+/* ---- Input Styles ---- */
+.fk-input {
+  background: #0F2040;
+  border: 1px solid rgba(0, 212, 255, 0.12);
+  border-radius: 10px;
+  color: #F0F4FF;
+  padding: 12px 16px;
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+}
+
+.fk-input::placeholder {
+  color: #4A6080;
+}
+
+.fk-input:focus {
+  outline: none;
+  border-color: #00D4FF;
+  box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1);
+}
+
+/* ---- Status Badge Colors ---- */
+.status-reported { background: rgba(255, 107, 53, 0.15); color: #FF6B35; }
+.status-inprogress { background: rgba(255, 184, 0, 0.15); color: #FFB800; }
+.status-resolved { background: rgba(0, 200, 150, 0.15); color: #00C896; }
+
+/* ---- Typography Utilities ---- */
+@layer utilities {
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
+  }
+}
+
+/* ---- Base Typography ---- */
+@layer base {
+  :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+    h1 {
+      font-size: var(--text-2xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h2 {
+      font-size: var(--text-xl);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h3 {
+      font-size: var(--text-lg);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    h4 {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    p {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+
+    label {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    button {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-medium);
+      line-height: 1.5;
+    }
+
+    input {
+      font-size: var(--text-base);
+      font-weight: var(--font-weight-normal);
+      line-height: 1.5;
+    }
+  }
+}
+
+html {
+  font-size: var(--font-size);
+}
+
+/* ---- Leaflet Dark Theme Overrides ---- */
+.leaflet-popup-content-wrapper {
+  background: #0F2040 !important;
+  color: #F0F4FF !important;
+  border: 1px solid rgba(0, 212, 255, 0.15) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+}
+
+.leaflet-popup-content {
+  color: #F0F4FF !important;
+}
+
+.leaflet-popup-tip {
+  background: #0F2040 !important;
+  border: 1px solid rgba(0, 212, 255, 0.15) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #8BA3C7 !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #00D4FF !important;
+}
+
+/* Ensure bottom navigation is always accessible */
+.fixed.bottom-0 {
+  z-index: 9999 !important;
+  pointer-events: auto !important;
+}
+
+/* Leaflet popup z-index */
+.leaflet-popup-pane {
+  z-index: 1000 !important;
+}
+
+.leaflet-popup {
+  z-index: 1001 !important;
+  position: relative !important;
+}

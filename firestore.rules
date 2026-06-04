@@ -1,0 +1,39 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /reports/{reportId} {
+      allow read: if true;
+      allow create: if signedIn()
+        && request.resource.data.submittedBy == request.auth.uid
+        && (!('todayReportCount' in userDoc().data) || userDoc().data.todayReportCount <= 5);
+      allow update: if signedIn()
+        && (userDoc().data.role in ['admin', 'authority']
+          || request.auth.uid == resource.data.submittedBy);
+
+      match /history/{historyId} {
+        allow read: if signedIn();
+        allow create: if signedIn() && userDoc().data.role in ['admin', 'authority'];
+      }
+    }
+
+    match /flags/{reportId}/flags/{uid} {
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow read: if signedIn() && userDoc().data.role in ['admin', 'authority'];
+    }
+  }
+}
+
