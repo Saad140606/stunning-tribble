@@ -1,0 +1,88 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "full_name": "Test Citizen",
+      "email": "test-umxrif@test.com",
+      "phone": "03001234567",
+      "password_hash": "$2a$10$XPsesvS5RCr6te6XSnOZnuGmdv0SaoAef5CFYUTLwJJ0UE7.diK1a",
+      "city": "Clifton",
+      "cnic": null,
+      "role": "citizen",
+      "is_verified": false,
+      "is_active": true,
+      "created_at": "2026-06-04T12:04:39.115Z",
+      "updated_at": "2026-06-04T12:04:39.115Z"
+    },
+    {
+      "id": 2,
+      "full_name": "Test Citizen",
+      "email": "test-gy85y@test.com",
+      "phone": "03001234567",
+      "password_hash": "$2a$10$42EWPpUi68KsWhAFZMjRreGJqZIbSgbmzLsW//zG3fo7ioDlK4vB2",
+      "city": "Clifton",
+      "cnic": null,
+      "role": "citizen",
+      "is_verified": false,
+      "is_active": true,
+      "created_at": "2026-06-04T12:04:57.009Z",
+      "updated_at": "2026-06-04T12:04:57.009Z"
+    },
+    {
+      "id": 3,
+      "full_name": "nabeel ali",
+      "email": "nabeelali07072007@gmail.com",
+      "phone": "03706657541",
+      "password_hash": "$2a$10$.Q71S3aE.VKBDOCLnlPSkO6ZAYGA03El1E2sMG0rqnqGUO9BSxZoq",
+      "city": "Saddar",
+      "cnic": null,
+      "role": "citizen",
+      "is_verified": false,
+      "is_active": true,
+      "created_at": "2026-06-04T12:08:14.696Z",
+      "updated_at": "2026-06-04T12:08:14.696Z"
+    }
+  ],
+  "refresh_tokens": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0LXVteHJpZkB0ZXN0LmNvbSIsInJvbGUiOiJjaXRpemVuIiwiaWF0IjoxNzgwNTc0Njc5LCJleHAiOjE3ODExNzk0Nzl9.4jOfKNa1rUAjTAfUFjni4bWM8m7y19KAYHmJD2b18j0",
+      "expires_at": "2026-06-11T12:04:39.159Z",
+      "created_at": "2026-06-04T12:04:39.159Z",
+      "revoked": false
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJ0ZXN0LXVteHJpZkB0ZXN0LmNvbSIsInJvbGUiOiJjaXRpemVuIiwiaWF0IjoxNzgwNTc0Njc5LCJleHAiOjE3ODExNzk0Nzl9.4jOfKNa1rUAjTAfUFjni4bWM8m7y19KAYHmJD2b18j0",
+      "expires_at": "2026-06-11T12:04:39.307Z",
+      "created_at": "2026-06-04T12:04:39.307Z",
+      "revoked": false
+    },
+    {
+      "id": 3,
+      "user_id": 2,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJ0ZXN0LWd5ODV5QHRlc3QuY29tIiwicm9sZSI6ImNpdGl6ZW4iLCJpYXQiOjE3ODA1NzQ2OTcsImV4cCI6MTc4MTE3OTQ5N30.uchKM9bCBiQR6U2atTAgJLVQGdv9U4_QIRwOAS3GMiw",
+      "expires_at": "2026-06-11T12:04:57.017Z",
+      "created_at": "2026-06-04T12:04:57.017Z",
+      "revoked": false
+    },
+    {
+      "id": 4,
+      "user_id": 2,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MiwiZW1haWwiOiJ0ZXN0LWd5ODV5QHRlc3QuY29tIiwicm9sZSI6ImNpdGl6ZW4iLCJpYXQiOjE3ODA1NzQ2OTcsImV4cCI6MTc4MTE3OTQ5N30.uchKM9bCBiQR6U2atTAgJLVQGdv9U4_QIRwOAS3GMiw",
+      "expires_at": "2026-06-11T12:04:57.194Z",
+      "created_at": "2026-06-04T12:04:57.195Z",
+      "revoked": false
+    },
+    {
+      "id": 5,
+      "user_id": 3,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZW1haWwiOiJuYWJlZWxhbGkwNzA3MjAwN0BnbWFpbC5jb20iLCJyb2xlIjoiY2l0aXplbiIsImlhdCI6MTc4MDU3NDg5NCwiZXhwIjoxNzgxMTc5Njk0fQ.xEBivPzvmxQCLOMyBm30zwQkJvjlNiRAmldJ6Pmc8nw",
+      "expires_at": "2026-06-11T12:08:14.706Z",
+      "created_at": "2026-06-04T12:08:14.707Z",
+      "revoked": false
+    }
+  ]
+}

@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { BarChart3, Clock, FileText, LayoutDashboard, LogOut, Siren } from 'lucide-react';
+import { BarChart3, Clock, FileText, LayoutDashboard, LogOut, Siren, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DashboardScreen } from './DashboardScreen';
 import { ReportsTable } from './ReportsTable';
 import { EmergencyQueue } from './EmergencyQueue';
 import { AdminReport, useAdminReports } from './useAdminReports';
+import { UserManagement } from './UserManagement';
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,6 +15,7 @@ const tabs = [
   { id: 'resolved', label: 'Resolved', icon: FileText },
   { id: 'emergency', label: 'Emergency Queue', icon: Siren },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { id: 'users', label: 'User Directory', icon: Users },
 ];
 
 export function AdminApp() {
@@ -78,7 +80,8 @@ export function AdminApp() {
         <div className="p-4 lg:p-6">
           {(active === 'dashboard' || active === 'analytics') && <DashboardScreen reports={reports} />}
           {active === 'emergency' && <EmergencyQueue reports={reports} />}
-          {!['dashboard', 'analytics', 'emergency'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
+          {active === 'users' && <UserManagement />}
+          {!['dashboard', 'analytics', 'emergency', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
         </div>
       </main>
     </div>

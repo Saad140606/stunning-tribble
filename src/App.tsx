@@ -15,7 +15,10 @@ import DesktopMobileNotice from './components/DesktopMobileNotice';
 import { translations, Language, isRTL, getStoredLanguage, storeLanguage } from './components/translations';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
-import { AuthScreen } from './screens/AuthScreen';
+import { LoginPage } from './pages/auth/LoginPage';
+import { RegisterPage } from './pages/auth/RegisterPage';
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { AdminApp } from './admin/AdminLayout';
 import { TransparencyScreen } from './screens/TransparencyScreen';
 import { SOSButton } from './components/SOSButton';
@@ -1085,7 +1088,10 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/auth" element={<AuthScreen />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/transparency" element={<TransparencyScreen />} />
           <Route
             path="/admin"
