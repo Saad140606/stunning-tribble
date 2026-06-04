@@ -123,6 +123,14 @@
       "expires_at": "2026-06-11T13:25:55.662Z",
       "created_at": "2026-06-04T13:25:55.663Z",
       "revoked": false
+    },
+    {
+      "id": 11,
+      "user_id": 3,
+      "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MywiZW1haWwiOiJuYWJlZWxhbGkwNzA3MjAwN0BnbWFpbC5jb20iLCJyb2xlIjoiY2l0aXplbiIsImlhdCI6MTc4MDU4ODMxNCwiZXhwIjoxNzgxMTkzMTE0fQ.FWoABPoZeIMZM8NrMxdP-xbcEUFpzhfw5Ey_Mlugp2U",
+      "expires_at": "2026-06-11T15:51:54.772Z",
+      "created_at": "2026-06-04T15:51:54.773Z",
+      "revoked": false
     }
   ]
 }
