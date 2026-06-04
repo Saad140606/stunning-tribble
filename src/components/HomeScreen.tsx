@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Search, Heart, MessageCircle, Flag, X, MapPin, Clock, Bell, ChevronRight } from 'lucide-react';
+import { Search, Heart, MessageCircle, Flag, X, MapPin, Clock, Bell, AlertTriangle, Trash2, Lightbulb, Droplets, ShieldAlert, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Report, Comment, User } from '../App';
 import { translations, Language } from './translations';
 import { FloatingActionButton } from './FloatingActionButton';
 import { useAuth } from '../context/AuthContext';
 import { flagReportAsSpam } from '../utils/spamFlags';
+import { ReportCardSkeleton } from './ui/loading';
 
 interface HomeScreenProps {
   reports: Report[];
@@ -17,6 +18,7 @@ interface HomeScreenProps {
   onCloseModal: () => void;
   onReportAgain: () => void;
   onLanguageChange: (language: Language) => void;
+  isLoading?: boolean;
 }
 
 const categoryColors: Record<string, string> = {
@@ -30,16 +32,30 @@ const categoryColors: Record<string, string> = {
   safety: '#FF3B3B',
 };
 
-const categoryIcons: Record<string, string> = {
-  pothole: '🕳️',
-  road: '🛣️',
-  garbage: '🗑️',
-  streetlight: '💡',
-  water: '💧',
-  sewerage: '🚿',
-  drainage: '🚿',
-  safety: '🛡️',
+const categoryIconComponents: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  pothole: AlertTriangle,
+  road: AlertTriangle,
+  garbage: Trash2,
+  streetlight: Lightbulb,
+  water: Droplets,
+  sewerage: Zap,
+  drainage: Zap,
+  safety: ShieldAlert,
 };
+
+const pageVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.07 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
 
 export function HomeScreen({
   reports,
@@ -51,6 +67,7 @@ export function HomeScreen({
   onCloseModal,
   onReportAgain,
   onLanguageChange,
+  isLoading = false,
 }: HomeScreenProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [newComment, setNewComment] = useState('');
@@ -76,8 +93,15 @@ export function HomeScreen({
       case 'reported': return { bg: 'rgba(255,107,53,0.15)', color: '#FF6B35', text: t.statusReported };
       case 'inprogress': return { bg: 'rgba(255,184,0,0.15)', color: '#FFB800', text: t.statusInProgress };
       case 'resolved': return { bg: 'rgba(0,200,150,0.15)', color: '#00C896', text: t.statusResolved };
+      case 'emergency': return { bg: 'rgba(255,59,59,0.18)', color: '#FF3B3B', text: t.statusEmergency };
+      case 'flagged': return { bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6', text: t.statusFlagged };
       default: return { bg: 'rgba(0,212,255,0.1)', color: '#8BA3C7', text: status };
     }
+  };
+
+  const getPriorityScore = (report: Report) => {
+    const statusBoost = report.status === 'emergency' ? 80 : 0;
+    return report.severity * 10 + report.upvotes * 2 + statusBoost;
   };
 
   const filteredReports = reports
@@ -88,7 +112,11 @@ export function HomeScreen({
        report.ward.toLowerCase().includes(searchTerm.toLowerCase()) ||
        report.street.toLowerCase().includes(searchTerm.toLowerCase()))
     )
-    .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+    .sort((a, b) => {
+      const scoreDiff = getPriorityScore(b) - getPriorityScore(a);
+      if (scoreDiff !== 0) return scoreDiff;
+      return b.timestamp.getTime() - a.timestamp.getTime();
+    });
 
   const totalReported = filteredReports.length;
   const totalResolved = filteredReports.filter(r => r.status === 'resolved').length;
@@ -116,7 +144,7 @@ export function HomeScreen({
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A1628' }}>
+    <motion.div className="min-h-screen" style={{ background: '#0A1628' }} variants={pageVariants} initial="hidden" animate="show">
       {/* Header */}
       <div
         className="sticky top-0 z-40"
@@ -194,17 +222,17 @@ export function HomeScreen({
       </div>
 
       {/* Section Title */}
-      <div className="px-4 pt-3 pb-2">
+      <motion.div className="px-4 pt-3 pb-2" variants={itemVariants}>
         <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: '16px', color: '#F0F4FF' }}>
           {t.latestReports}
         </h2>
-      </div>
+      </motion.div>
 
       {/* Reports Feed */}
-      <div className="px-3 pb-4 space-y-3">
+      {isLoading ? <ReportCardSkeleton count={5} /> : <div className="px-3 pb-4 space-y-3">
         {filteredReports.map((report, index) => {
           const catColor = categoryColors[report.type] || '#00D4FF';
-          const catIcon = categoryIcons[report.type] || '📌';
+          const CategoryIcon = categoryIconComponents[report.type] || MapPin;
           const status = getStatusStyle(report.status);
 
           return (
@@ -231,7 +259,7 @@ export function HomeScreen({
                       className="w-7 h-7 rounded-lg flex items-center justify-center text-sm"
                       style={{ background: `${catColor}15`, border: `1px solid ${catColor}30` }}
                     >
-                      {catIcon}
+                      <CategoryIcon className="w-4 h-4" style={{ color: catColor }} />
                     </div>
                     <span style={{ fontSize: '13px', fontWeight: 600, color: '#F0F4FF' }}>
                       {report.title}
@@ -260,6 +288,14 @@ export function HomeScreen({
                     >
                       {status.text}
                     </span>
+                    {report.priority === 'high' && (
+                      <span
+                        className="px-2.5 py-1 rounded-full text-xs font-semibold"
+                        style={{ background: 'rgba(255,59,59,0.15)', color: '#FF3B3B' }}
+                      >
+                        {t.highPriority}
+                      </span>
+                    )}
 
                     {/* Upvote */}
                     <motion.button
@@ -302,7 +338,7 @@ export function HomeScreen({
             <p style={{ color: '#4A6080', fontSize: '14px' }}>{t.noReports}</p>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* Floating Action Button */}
       <FloatingActionButton
@@ -355,6 +391,14 @@ export function HomeScreen({
                     </span>
                   );
                 })()}
+                {selectedReport.priority === 'high' && (
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-semibold"
+                    style={{ background: 'rgba(255,59,59,0.15)', color: '#FF3B3B' }}
+                  >
+                    {t.highPriority}
+                  </span>
+                )}
                 <span style={{ fontSize: '12px', color: '#4A6080' }}>{formatTimeAgo(selectedReport.timestamp)}</span>
               </div>
 
@@ -448,6 +492,6 @@ export function HomeScreen({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }

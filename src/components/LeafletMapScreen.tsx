@@ -57,12 +57,15 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
       case 'reported': return { bg: 'rgba(255,107,53,0.15)', color: '#FF6B35', text: t.statusReported };
       case 'inprogress': return { bg: 'rgba(255,184,0,0.15)', color: '#FFB800', text: t.statusInProgress };
       case 'resolved': return { bg: 'rgba(0,200,150,0.15)', color: '#00C896', text: t.statusResolved };
+      case 'emergency': return { bg: 'rgba(255,59,59,0.18)', color: '#FF3B3B', text: t.statusEmergency };
+      case 'flagged': return { bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6', text: t.statusFlagged };
       default: return { bg: 'rgba(0,212,255,0.1)', color: '#8BA3C7', text: status };
     }
   };
 
+  const shouldShowAllKarachi = user.district === 'Karachi';
   const filteredReports = reports
-    .filter(report => report.district === user.district)
+    .filter(report => shouldShowAllKarachi || report.district === user.district)
     .filter(report => {
       if (selectedFilter === 'all') return true;
       return report.type.toLowerCase() === selectedFilter;
@@ -84,11 +87,13 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
   useEffect(() => {
     const districtCenter = getDistrictCenter(user.district);
     const newCoordinates = new Map<string, [number, number]>();
-    const districtReports = reports.filter(r => r.district === user.district);
+    const districtReports = reports.filter(r => shouldShowAllKarachi || r.district === user.district);
     const coordinates = generateRandomCoordinates(districtCenter, districtReports.length, 5);
 
     districtReports.forEach((report, index) => {
-      if (!reportCoordinates.has(report.id)) {
+      if (report.coordinates) {
+        newCoordinates.set(report.id, [report.coordinates.lng, report.coordinates.lat]);
+      } else if (!reportCoordinates.has(report.id)) {
         newCoordinates.set(report.id, coordinates[index] || districtCenter);
       } else {
         newCoordinates.set(report.id, reportCoordinates.get(report.id)!);
@@ -96,7 +101,7 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
     });
 
     setReportCoordinates(newCoordinates);
-  }, [reports, user.district]);
+  }, [reports, user.district, shouldShowAllKarachi]);
 
   // Initialize map
   useEffect(() => {
@@ -159,7 +164,7 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
             transition: transform 0.2s;
             position: relative;
           ">
-            <div style="font-size: 14px;">📍</div>
+            <div style="width: 10px; height: 10px; border-radius: 50%; background: ${color};"></div>
             ${report.priority === 'high' ? `
               <div style="
                 position: absolute; top: -3px; right: -3px;

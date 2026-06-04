@@ -85,6 +85,9 @@ export const translations = {
     statusResolved: "Resolved",
 
     // Map
+    statusEmergency: "Emergency",
+    statusFlagged: "Flagged",
+    highPriority: "High Priority",
     allReports: "All",
     issuesNearby: "issues nearby",
     filterAll: "All",
@@ -210,6 +213,9 @@ export const translations = {
     statusResolved: "حل ہوا",
 
     // Map
+    statusEmergency: "ہنگامی",
+    statusFlagged: "نشان زد",
+    highPriority: "اعلیٰ ترجیح",
     allReports: "تمام",
     issuesNearby: "قریبی مسائل",
     filterAll: "تمام",
