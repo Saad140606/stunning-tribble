@@ -20,6 +20,7 @@ import { AdminApp } from './admin/AdminLayout';
 import { TransparencyScreen } from './screens/TransparencyScreen';
 import { SOSButton } from './components/SOSButton';
 import { firestore, isFirebaseConfigured } from './lib/firebase';
+import { findLocalDuplicate } from './utils/duplicateDetection';
 
 export interface Report {
   id: string;
@@ -550,6 +551,321 @@ function CitizenApp() {
         hasUserUpvoted: false,
         priority: 'high'
       },
+      {
+        id: '21',
+        title: 'Open drain outside Jinnah Hospital',
+        description: 'Broken drain cover near the emergency gate is causing foul smell and risk for patients.',
+        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400',
+        district: 'Karachi',
+        ward: 'Saddar',
+        street: 'Rafiqui H.J. Shaheed Road',
+        coordinates: { lat: 24.8553, lng: 67.0439 },
+        distance: 1.1,
+        timestamp: new Date(Date.now() - 40 * 60 * 1000),
+        aiTag: 'Sewerage System',
+        aiConfidence: 91,
+        status: 'reported',
+        upvotes: 36,
+        comments: [],
+        severity: 9,
+        type: 'sewerage',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '22',
+        title: 'Street flooding at NIPA intersection',
+        description: 'Rainwater remains pooled near NIPA for hours and blocks two service lanes.',
+        imageUrl: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400',
+        district: 'Karachi',
+        ward: 'Gulshan-e-Iqbal',
+        street: 'NIPA Chowrangi',
+        coordinates: { lat: 24.9176, lng: 67.0971 },
+        distance: 3.4,
+        timestamp: new Date(Date.now() - 90 * 60 * 1000),
+        aiTag: 'Drainage',
+        aiConfidence: 88,
+        status: 'inprogress',
+        upvotes: 58,
+        comments: [],
+        severity: 8,
+        type: 'water',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '23',
+        title: 'Garbage pile near Boat Basin food street',
+        description: 'Waste has not been collected from the service lane and is spilling onto parking spots.',
+        imageUrl: 'https://images.unsplash.com/photo-1609771405106-23d93a049d8b?w=400',
+        district: 'Karachi',
+        ward: 'Clifton',
+        street: 'Boat Basin',
+        coordinates: { lat: 24.8272, lng: 67.0299 },
+        distance: 2.6,
+        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        aiTag: 'Waste Management',
+        aiConfidence: 94,
+        status: 'reported',
+        upvotes: 44,
+        comments: [],
+        severity: 7,
+        type: 'garbage',
+        hasUserUpvoted: false,
+        priority: 'medium'
+      },
+      {
+        id: '24',
+        title: 'Signal outage at Shah Faisal Colony',
+        description: 'Traffic signal is dead near the main roundabout causing long queues.',
+        imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400',
+        district: 'Karachi',
+        ward: 'Shah Faisal',
+        street: 'Shah Faisal Colony Roundabout',
+        coordinates: { lat: 24.8824, lng: 67.1591 },
+        distance: 6.2,
+        timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
+        aiTag: 'Traffic Safety',
+        aiConfidence: 86,
+        status: 'reported',
+        upvotes: 29,
+        comments: [],
+        severity: 8,
+        type: 'safety',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '25',
+        title: 'Broken road shoulder in Model Colony',
+        description: 'Road edge has collapsed near the bus stop and motorcyclists are swerving suddenly.',
+        imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+        district: 'Karachi',
+        ward: 'Model Colony',
+        street: 'Malir Halt Road',
+        coordinates: { lat: 24.8924, lng: 67.1878 },
+        distance: 7.5,
+        timestamp: new Date(Date.now() - 7 * 60 * 60 * 1000),
+        aiTag: 'Road Infrastructure',
+        aiConfidence: 93,
+        status: 'inprogress',
+        upvotes: 51,
+        comments: [],
+        severity: 8,
+        type: 'pothole',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '26',
+        title: 'No street lights in Surjani Sector 7D',
+        description: 'Four poles are out on the main lane and residents avoid walking after sunset.',
+        imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400',
+        district: 'Karachi',
+        ward: 'Surjani Town',
+        street: 'Sector 7D',
+        coordinates: { lat: 25.0101, lng: 67.0666 },
+        distance: 9.1,
+        timestamp: new Date(Date.now() - 9 * 60 * 60 * 1000),
+        aiTag: 'Street Lighting',
+        aiConfidence: 92,
+        status: 'reported',
+        upvotes: 64,
+        comments: [],
+        severity: 7,
+        type: 'streetlight',
+        hasUserUpvoted: false,
+        priority: 'medium'
+      },
+      {
+        id: '27',
+        title: 'Water main leak near Tariq Road',
+        description: 'Clean water is leaking continuously from a cracked pipeline beside the shops.',
+        imageUrl: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400',
+        district: 'Karachi',
+        ward: 'PECHS',
+        street: 'Tariq Road Service Lane',
+        coordinates: { lat: 24.8738, lng: 67.0594 },
+        distance: 1.0,
+        timestamp: new Date(Date.now() - 11 * 60 * 60 * 1000),
+        aiTag: 'Water Supply',
+        aiConfidence: 90,
+        status: 'reported',
+        upvotes: 47,
+        comments: [],
+        severity: 8,
+        type: 'water',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '28',
+        title: 'Industrial waste dumping in SITE',
+        description: 'Waste bags and chemical containers are dumped near the service road.',
+        imageUrl: 'https://images.unsplash.com/photo-1609771405106-23d93a049d8b?w=400',
+        district: 'Karachi',
+        ward: 'SITE Area',
+        street: 'SITE Service Road',
+        coordinates: { lat: 24.8986, lng: 66.9963 },
+        distance: 5.7,
+        timestamp: new Date(Date.now() - 13 * 60 * 60 * 1000),
+        aiTag: 'Waste Management',
+        aiConfidence: 89,
+        status: 'reported',
+        upvotes: 39,
+        comments: [],
+        severity: 9,
+        type: 'garbage',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '29',
+        title: 'Manhole cover missing in Liaquatabad',
+        description: 'Open manhole beside the market has no barricade and is hidden in traffic.',
+        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400',
+        district: 'Karachi',
+        ward: 'Liaquatabad',
+        street: 'Liaquatabad No. 10',
+        coordinates: { lat: 24.9141, lng: 67.0449 },
+        distance: 3.9,
+        timestamp: new Date(Date.now() - 15 * 60 * 60 * 1000),
+        aiTag: 'Safety Concern',
+        aiConfidence: 95,
+        status: 'reported',
+        upvotes: 88,
+        comments: [],
+        severity: 10,
+        type: 'safety',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '30',
+        title: 'Potholes on Korangi Crossing',
+        description: 'Multiple potholes on the turning lane are slowing buses and heavy vehicles.',
+        imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+        district: 'Karachi',
+        ward: 'Korangi',
+        street: 'Korangi Crossing',
+        coordinates: { lat: 24.8246, lng: 67.1430 },
+        distance: 4.6,
+        timestamp: new Date(Date.now() - 18 * 60 * 60 * 1000),
+        aiTag: 'Road Infrastructure',
+        aiConfidence: 92,
+        status: 'inprogress',
+        upvotes: 72,
+        comments: [],
+        severity: 8,
+        type: 'pothole',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '31',
+        title: 'Sewerage smell near Orangi Metro stop',
+        description: 'Blocked sewer line is overflowing behind the stop and affecting nearby shops.',
+        imageUrl: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=400',
+        district: 'Karachi',
+        ward: 'Orangi',
+        street: 'Orangi Metro Stop',
+        coordinates: { lat: 24.9464, lng: 66.9849 },
+        distance: 6.6,
+        timestamp: new Date(Date.now() - 20 * 60 * 60 * 1000),
+        aiTag: 'Sewerage System',
+        aiConfidence: 87,
+        status: 'reported',
+        upvotes: 33,
+        comments: [],
+        severity: 7,
+        type: 'sewerage',
+        hasUserUpvoted: false,
+        priority: 'medium'
+      },
+      {
+        id: '32',
+        title: 'Streetlight restored near Malir Halt',
+        description: 'Lights on the pedestrian stretch have been repaired after citizen reports.',
+        imageUrl: 'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400',
+        district: 'Karachi',
+        ward: 'Malir',
+        street: 'Malir Halt',
+        coordinates: { lat: 24.8846, lng: 67.1811 },
+        distance: 7.7,
+        timestamp: new Date(Date.now() - 26 * 60 * 60 * 1000),
+        aiTag: 'Street Lighting',
+        aiConfidence: 90,
+        status: 'resolved',
+        upvotes: 21,
+        comments: [],
+        severity: 5,
+        type: 'streetlight',
+        hasUserUpvoted: false,
+        priority: 'low'
+      },
+      {
+        id: '33',
+        title: 'Garbage container overflow in Buffer Zone',
+        description: 'Container is full and waste is blocking the side lane near the mosque.',
+        imageUrl: 'https://images.unsplash.com/photo-1609771405106-23d93a049d8b?w=400',
+        district: 'Karachi',
+        ward: 'Buffer Zone',
+        street: 'Sector 15-A/1',
+        coordinates: { lat: 24.9478, lng: 67.0648 },
+        distance: 5.8,
+        timestamp: new Date(Date.now() - 30 * 60 * 60 * 1000),
+        aiTag: 'Waste Management',
+        aiConfidence: 91,
+        status: 'reported',
+        upvotes: 54,
+        comments: [],
+        severity: 7,
+        type: 'garbage',
+        hasUserUpvoted: false,
+        priority: 'medium'
+      },
+      {
+        id: '34',
+        title: 'Road cut left open in Defence Phase 2',
+        description: 'Utility work trench was left uncovered and cars are bottoming out.',
+        imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
+        district: 'Karachi',
+        ward: 'DHA',
+        street: 'Khayaban-e-Ittehad',
+        coordinates: { lat: 24.8109, lng: 67.0551 },
+        distance: 2.9,
+        timestamp: new Date(Date.now() - 34 * 60 * 60 * 1000),
+        aiTag: 'Road Infrastructure',
+        aiConfidence: 94,
+        status: 'reported',
+        upvotes: 46,
+        comments: [],
+        severity: 8,
+        type: 'road',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
+      {
+        id: '35',
+        title: 'Water pressure failure in Gulberg',
+        description: 'Residents report no pressure on upper floors for the third consecutive day.',
+        imageUrl: 'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400',
+        district: 'Karachi',
+        ward: 'Gulberg',
+        street: 'Block 12',
+        coordinates: { lat: 24.9296, lng: 67.0581 },
+        distance: 4.3,
+        timestamp: new Date(Date.now() - 38 * 60 * 60 * 1000),
+        aiTag: 'Water Supply',
+        aiConfidence: 88,
+        status: 'inprogress',
+        upvotes: 61,
+        comments: [],
+        severity: 8,
+        type: 'water',
+        hasUserUpvoted: false,
+        priority: 'high'
+      },
     ];
     setReports(initialReports);
   }, []);
@@ -560,6 +876,19 @@ function CitizenApp() {
   };
 
   const handleAddReport = (newReport: Omit<Report, 'id' | 'timestamp' | 'upvotes' | 'comments' | 'distance' | 'hasUserUpvoted'>) => {
+    const duplicate = findLocalDuplicate(reports, {
+      type: newReport.type,
+      coordinates: newReport.coordinates,
+    });
+    const t = translations[user.language];
+
+    if (duplicate) {
+      toast.error('Possible duplicate report detected', {
+        description: `Within ${duplicate.distanceMeters}m. Please upvote the existing report #${duplicate.id.slice(-4)}.`
+      });
+      return;
+    }
+
     const report: Report = {
       ...newReport,
       id: Date.now().toString(),
@@ -569,8 +898,6 @@ function CitizenApp() {
       distance: Math.random() * 3,
       hasUserUpvoted: false
     };
-
-    const t = translations[user.language];
 
     if (user.isOnline) {
       setReports(prev => [report, ...prev]);
@@ -623,10 +950,17 @@ function CitizenApp() {
     setReports(prev => prev.map(report => {
       if (report.id === reportId) {
         const hasUpvoted = report.hasUserUpvoted;
+        const nextUpvotes = hasUpvoted ? report.upvotes - 1 : report.upvotes + 1;
+        const emergencyThreshold = 50;
+        const isEmergency = nextUpvotes >= emergencyThreshold;
+        const priorityScore = report.severity * 10 + nextUpvotes * 2;
+        const priority = isEmergency || priorityScore >= 140 ? 'high' : priorityScore >= 90 ? 'medium' : 'low';
         return {
           ...report,
-          upvotes: hasUpvoted ? report.upvotes - 1 : report.upvotes + 1,
-          hasUserUpvoted: !hasUpvoted
+          upvotes: nextUpvotes,
+          hasUserUpvoted: !hasUpvoted,
+          priority,
+          status: isEmergency ? 'emergency' : report.status
         };
       }
       return report;

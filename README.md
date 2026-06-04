@@ -62,8 +62,8 @@
 ### Installation
 1. Clone the repository and navigate to the project directory:
    ```bash
-   git clone https://github.com/SBera01/swachh-nagar-app---SIH-2025.git
-   cd swachh-nagar-app---SIH-2025
+   git clone https://github.com/Saad140606/stunning-tribble.git
+   cd stunning-tribble
    ```
 2. Install all dependencies:
    ```bash

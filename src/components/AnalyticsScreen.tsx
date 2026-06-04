@@ -27,6 +27,19 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const pageVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.07 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
 export function AnalyticsScreen({ reports, user }: AnalyticsScreenProps) {
   const t = translations[user.language];
 
@@ -79,7 +92,7 @@ export function AnalyticsScreen({ reports, user }: AnalyticsScreenProps) {
   const maxAreaCount = Math.max(...topAreas.map(a => a.count));
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A1628' }}>
+    <motion.div className="min-h-screen" style={{ background: '#0A1628' }} variants={pageVariants} initial="hidden" animate="show">
       {/* Header */}
       <div
         className="sticky top-0 z-40 px-4 py-4"
@@ -93,7 +106,7 @@ export function AnalyticsScreen({ reports, user }: AnalyticsScreenProps) {
         </p>
       </div>
 
-      <div className="p-4 space-y-4">
+      <motion.div className="p-4 space-y-4" variants={itemVariants}>
         {/* Stats Grid */}
         <div className="grid grid-cols-2 gap-3">
           {statsCards.map((stat, index) => (
@@ -226,7 +239,7 @@ export function AnalyticsScreen({ reports, user }: AnalyticsScreenProps) {
             ))}
           </div>
         </motion.div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

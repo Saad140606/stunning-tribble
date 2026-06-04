@@ -16,12 +16,12 @@ interface ReportScreenProps {
 }
 
 const categories = [
-  { value: 'pothole', icon: '🕳️', color: '#FF6B35', LucideIcon: AlertTriangle },
-  { value: 'garbage', icon: '🗑️', color: '#00C896', LucideIcon: Trash2 },
-  { value: 'streetlight', icon: '💡', color: '#FFB800', LucideIcon: Lightbulb },
-  { value: 'water', icon: '💧', color: '#00D4FF', LucideIcon: Droplets },
-  { value: 'sewerage', icon: '🚿', color: '#8B5CF6', LucideIcon: Zap },
-  { value: 'safety', icon: '🛡️', color: '#FF3B3B', LucideIcon: AlertTriangle },
+  { value: 'pothole', color: '#FF6B35', LucideIcon: AlertTriangle },
+  { value: 'garbage', color: '#00C896', LucideIcon: Trash2 },
+  { value: 'streetlight', color: '#FFB800', LucideIcon: Lightbulb },
+  { value: 'water', color: '#00D4FF', LucideIcon: Droplets },
+  { value: 'sewerage', color: '#8B5CF6', LucideIcon: Zap },
+  { value: 'safety', color: '#FF3B3B', LucideIcon: AlertTriangle },
 ];
 
 export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
@@ -190,6 +190,7 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
                 <div className="grid grid-cols-3 gap-3">
                   {categories.map((cat) => {
                     const isSelected = category === cat.value;
+                    const CategoryIcon = cat.LucideIcon;
                     return (
                       <motion.button
                         key={cat.value}
@@ -201,7 +202,12 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
                         onClick={() => setCategory(cat.value)}
                         whileTap={{ scale: 0.95 }}
                       >
-                        <span className="text-2xl">{cat.icon}</span>
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ background: `${cat.color}20`, border: `1px solid ${cat.color}40` }}
+                        >
+                          <CategoryIcon className="w-5 h-5" style={{ color: cat.color }} />
+                        </div>
                         <span style={{ fontSize: '11px', fontWeight: 500, color: isSelected ? cat.color : '#8BA3C7' }}>
                           {t[cat.value as keyof typeof t] as string}
                         </span>

@@ -156,6 +156,10 @@
 }
 
 /* ---- RTL Support ---- */
+[dir="rtl"] {
+  font-family: var(--font-urdu);
+}
+
 html[dir="rtl"] body,
 html[dir="rtl"] * {
   font-family: var(--font-urdu);

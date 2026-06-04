@@ -14,6 +14,19 @@ interface ProfileScreenProps {
   onReportAgain: () => void;
 }
 
+const pageVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.07 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
+
 export function ProfileScreen({
   reports,
   user,
@@ -74,7 +87,7 @@ export function ProfileScreen({
   const resolvedCount = userReports.filter(r => r.status === 'resolved').length;
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A1628' }}>
+    <motion.div className="min-h-screen" style={{ background: '#0A1628' }} variants={pageVariants} initial="hidden" animate="show">
       {/* Header */}
       <div
         className="sticky top-0 z-40 px-4 py-4"
@@ -85,7 +98,7 @@ export function ProfileScreen({
         </h1>
       </div>
 
-      <div className="p-4 space-y-4">
+      <motion.div className="p-4 space-y-4" variants={itemVariants}>
         {/* User Info Card */}
         <motion.div
           className="rounded-2xl p-5"
@@ -313,7 +326,7 @@ export function ProfileScreen({
           <LogOut className="w-4 h-4" />
           {t.logout}
         </motion.button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
