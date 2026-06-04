@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import 'leaflet.heat';
+import { apiFetch } from '../services/api';
 import 'leaflet/dist/leaflet.css';
 import { Heart, Eye, X, MapPin } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
@@ -40,6 +42,7 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
+  const heatLayerRef = useRef<any>(null);
 
   const t = translations[user.language];
 
@@ -124,15 +127,21 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
       attribution: '© CartoDB © OpenStreetMap contributors'
     }).addTo(leafletMapRef.current);
 
+    // @ts-ignore: leaflet heat plugin adds heatLayer to L
+    const heatLayer = (L as any).heatLayer([], { radius: 25, blur: 15, maxZoom: 17 });
+    heatLayer.addTo(leafletMapRef.current);
+    heatLayerRef.current = heatLayer;
+
     return () => {
       if (leafletMapRef.current) {
         leafletMapRef.current.remove();
         leafletMapRef.current = null;
+        heatLayerRef.current = null;
       }
     };
   }, [user.district]);
 
-  // Update markers
+  // Update markers and heatmap
   useEffect(() => {
     if (!leafletMapRef.current || reportCoordinates.size === 0) return;
 
@@ -141,11 +150,18 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
     });
     markersRef.current = [];
 
+    const heatPoints: [number, number, number][] = [];
+
     filteredReports.forEach((report) => {
       const coordinates = reportCoordinates.get(report.id);
       if (!coordinates) return;
 
       const color = categoryColors[report.type] || '#00D4FF';
+
+      // leaflet.heat expects [lat, lng, intensity]
+      // coordinates[1] is lat, coordinates[0] is lng
+      const intensity = report.priority === 'high' ? 0.8 : (report.priority === 'medium' ? 0.6 : 0.4);
+      heatPoints.push([coordinates[1], coordinates[0], intensity]);
 
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
@@ -188,6 +204,10 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
 
       markersRef.current.push(marker);
     });
+
+    if (heatLayerRef.current) {
+      heatLayerRef.current.setLatLngs(heatPoints);
+    }
   }, [filteredReports, reportCoordinates]);
 
   return (
