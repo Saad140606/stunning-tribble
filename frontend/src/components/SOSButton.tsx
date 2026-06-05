@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { AlertTriangle, ShieldAlert, X } from 'lucide-react';
-import { firestore, isFirebaseConfigured } from '../lib/firebase';
+import { apiFetch } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { queueComplaint } from '../utils/offlineQueue';
 
 const emergencyTypes = [
   'Gas Leak / گیس لیک',
@@ -23,20 +23,43 @@ export function SOSButton({ onCreated }: { onCreated?: (reference: string) => vo
     navigator.geolocation.getCurrentPosition(async (position) => {
       const reference = `SOS-${Date.now().toString().slice(-6)}`;
       const payload = {
-        reference,
-        type: 'emergency',
-        category: selected,
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-        submittedBy: user?.uid ?? 'anonymous',
-        phone: user?.phoneNumber ?? null,
+        title: `SOS: ${selected}`,
+        description: `Emergency reported via SOS (${selected})`,
+        category: 'emergency',
+        severity: 10,
         status: 'emergency',
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        district: 'Karachi',
+        ward: null,
+        street: null,
         priority: 10,
-        createdAt: serverTimestamp(),
-        slaDeadline: Timestamp.fromDate(new Date(Date.now() + 15 * 60 * 1000)),
+        slaDeadline: new Date(Date.now() + 15 * 60 * 1000).toISOString(),
       };
-      if (isFirebaseConfigured) {
-        await addDoc(collection(firestore, 'reports'), payload);
+
+      let queued = false;
+      if (navigator.onLine) {
+        try {
+          const response = await apiFetch('/complaints', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+          if (!response.ok) {
+            if (response.status === 401) {
+              setSuccessRef('Login required');
+              return;
+            }
+            queued = true;
+          }
+        } catch (err) {
+          queued = true;
+        }
+      } else {
+        queued = true;
+      }
+
+      if (queued) {
+        await queueComplaint(payload);
       }
       await navigator.clipboard?.writeText(reference).catch(() => undefined);
       setSuccessRef(reference);

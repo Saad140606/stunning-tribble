@@ -34,28 +34,61 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
   const [duplicate, setDuplicate] = useState<DuplicateCandidate | null>(null);
   const [submitAnyway, setSubmitAnyway] = useState(false);
   const rateLimit = useRateLimit();
-  const { user: authUser } = useAuth();
+  const [location, setLocation] = useState<{lat: number, lng: number, ward: string, district: string} | null>(null);
 
   const t = translations[user.language];
 
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            ward: 'Live Ward', // Replace with reverse geocoding if available
+            district: 'Live District' // Replace with reverse geocoding if available
+          });
+        },
+        (error) => {
+          console.error("Error getting location", error);
+          // Fallback to default Karachi location
+          setLocation({
+            lat: user.coordinates.lat,
+            lng: user.coordinates.lng,
+            ward: 'Saddar',
+            district: user.district
+          });
+        }
+      );
+    }
+  }, [user.coordinates, user.district]);
+
   const handleCameraCapture = () => {
-    const photoUrls = [
-      'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      'https://images.unsplash.com/photo-1609771405106-23d93a049d8b?w=400',
-      'https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400',
-      'https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400',
-    ];
-    setCapturedPhoto(photoUrls[Math.floor(Math.random() * photoUrls.length)]);
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.onchange = (e) => {
+      const target = e.target as HTMLInputElement;
+      if (target.files && target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setCapturedPhoto(event.target?.result as string);
+        };
+        reader.readAsDataURL(target.files[0]);
+      }
+    };
+    input.click();
   };
 
   const handleSubmit = async () => {
-    if (!category) return;
+    if (!category || !location) return;
     if (rateLimit.isLimited) return;
 
     const catInfo = categories.find(c => c.value === category);
     const coordinates = {
-      lat: user.coordinates.lat + (Math.random() - 0.5) * 0.01,
-      lng: user.coordinates.lng + (Math.random() - 0.5) * 0.01,
+      lat: location.lat,
+      lng: location.lng,
     };
 
     if (!duplicate && !submitAnyway) {
@@ -72,8 +105,8 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
       title: title || `${catInfo?.value || 'Issue'} reported`,
       description: description || `${catInfo?.value || 'Issue'} reported via Fix Karachi`,
       imageUrl: capturedPhoto || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400',
-      district: user.district,
-      ward: 'Saddar',
+      district: location.district,
+      ward: location.ward,
       street: 'Current Location',
       coordinates,
       aiTag: catInfo?.value || 'Unknown',

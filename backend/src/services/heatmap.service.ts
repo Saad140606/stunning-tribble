@@ -62,7 +62,8 @@ export async function getHeatmapPoints(filters: any = {}): Promise<any[]> {
     const gridSize = 0.0045; // roughly 500m at equator
     const map = new Map<string, { latitude: number; longitude: number; weight: number; count: number }>();
     for (const c of complaints) {
-      const weight = CATEGORY_WEIGHTS[c.category as string] || 1;
+      const normalized = String(c.category || '').toUpperCase();
+      const weight = CATEGORY_WEIGHTS[normalized] || 1;
       const gridLat = Math.round(c.latitude / gridSize) * gridSize;
       const gridLon = Math.round(c.longitude / gridSize) * gridSize;
       const key = `${gridLat},${gridLon}`;

@@ -1,10 +1,56 @@
 
   import { defineConfig } from 'vite';
   import react from '@vitejs/plugin-react-swc';
+  import { VitePWA } from 'vite-plugin-pwa';
   import path from 'path';
 
   export default defineConfig({
-    plugins: [react()],
+    plugins: [
+      react(),
+      VitePWA({
+        registerType: 'autoUpdate',
+        includeAssets: ['logo.png'],
+        manifest: {
+          name: 'Fix Karachi',
+          short_name: 'Fix Karachi',
+          description: 'Civic reporting for Karachi citizens',
+          theme_color: '#0A1628',
+          background_color: '#0A1628',
+          display: 'standalone',
+          start_url: '/',
+          icons: [
+            {
+              src: '/logo.png',
+              sizes: '512x512',
+              type: 'image/png',
+            },
+          ],
+        },
+        workbox: {
+          runtimeCaching: [
+            {
+              urlPattern: ({ request }) => request.destination === 'image',
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'image-cache',
+                expiration: {
+                  maxEntries: 80,
+                  maxAgeSeconds: 7 * 24 * 60 * 60,
+                },
+              },
+            },
+            {
+              urlPattern: ({ url }) => url.pathname.startsWith('/api/complaints/public'),
+              handler: 'NetworkFirst',
+              options: {
+                cacheName: 'public-api-cache',
+                networkTimeoutSeconds: 3,
+              },
+            },
+          ],
+        },
+      }),
+    ],
     resolve: {
       extensions: ['.js', '.jsx', '.ts', '.tsx', '.json'],
       alias: {

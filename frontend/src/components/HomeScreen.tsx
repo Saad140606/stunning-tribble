@@ -411,13 +411,13 @@ export function HomeScreen({
               {/* Description */}
               <p style={{ fontSize: '14px', color: '#F0F4FF', lineHeight: 1.6 }}>{selectedReport.description}</p>
 
-              {/* AI Tag */}
+              {/* Priority Tag */}
               <div
                 className="px-3 py-2 rounded-lg"
                 style={{ background: 'rgba(0,212,255,0.06)', border: '1px solid rgba(0,212,255,0.1)' }}
               >
                 <span style={{ fontSize: '12px', color: '#00D4FF' }}>
-                  🤖 {selectedReport.aiTag} — {selectedReport.aiConfidence}% {t.confidence}
+                  ⚙️ Rule-Based: {selectedReport.aiTag} — {selectedReport.aiConfidence}% {t.confidence}
                 </span>
               </div>
 

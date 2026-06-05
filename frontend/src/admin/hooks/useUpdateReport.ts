@@ -1,5 +1,4 @@
-import { addDoc, collection, doc, serverTimestamp, updateDoc } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../../lib/firebase';
+import { apiFetch } from '../../services/api';
 import { AdminStatus } from '../useAdminReports';
 
 export async function updateReportStatus({
@@ -13,19 +12,13 @@ export async function updateReportStatus({
   changedBy: string;
   note?: string;
 }) {
-  if (!isFirebaseConfigured) return;
-
-  await updateDoc(doc(firestore, 'reports', reportId), {
-    status,
-    adminNote: note ?? '',
-    updatedAt: serverTimestamp(),
-  });
-
-  await addDoc(collection(firestore, 'reports', reportId, 'history'), {
-    status,
-    changedBy,
-    timestamp: serverTimestamp(),
-    note: note ?? '',
+  await apiFetch(`/admin/complaints/${reportId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      status,
+      adminNote: note ?? '',
+      assignedTo: changedBy,
+    }),
   });
 }
 

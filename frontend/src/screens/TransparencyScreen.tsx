@@ -1,8 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { collection, onSnapshot, query, Timestamp } from 'firebase/firestore';
 import { CheckCircle2, Share2 } from 'lucide-react';
-import { firestore, isFirebaseConfigured } from '../lib/firebase';
+import { apiFetch } from '../services/api';
 
 interface PublicReport {
   id: string;
@@ -26,29 +25,40 @@ const demoReports: PublicReport[] = [
 const districts = ['Saddar', 'Gulshan-e-Iqbal', 'Clifton', 'Korangi', 'Malir', 'Lyari', 'Orangi', 'Nazimabad', 'DHA', 'North Karachi'];
 const departments = ['KMC Roads', 'KMC Water (KWSB)', 'KESC', 'Traffic Police'];
 
-const asDate = (value: unknown) => value instanceof Timestamp ? value.toDate() : value instanceof Date ? value : new Date();
+const asDate = (value: unknown) => value instanceof Date ? value : value ? new Date(String(value)) : new Date();
 
 export function TransparencyScreen() {
   const [reports, setReports] = useState<PublicReport[]>(demoReports);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
-    return onSnapshot(query(collection(firestore, 'reports')), (snapshot) => {
-      setReports(snapshot.docs.map((doc) => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          category: data.category ?? data.type ?? 'Civic issue',
-          district: data.district ?? 'Karachi',
-          department: data.assignedTo ?? data.department ?? 'KMC Roads',
-          status: data.status ?? 'reported',
-          createdAt: asDate(data.createdAt),
-          resolvedAt: data.resolvedAt || data.status === 'resolved' ? asDate(data.updatedAt) : undefined,
-          emergencyWithinSla: data.priority === 10 && data.status === 'resolved',
-        };
-      }));
-    });
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const response = await apiFetch('/complaints/public', { skipAuth: true });
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const mapped = (data.complaints || []).map((item: any) => ({
+          id: String(item.id),
+          category: item.category ?? 'Civic issue',
+          district: item.district ?? 'Karachi',
+          department: item.assignedTo ?? item.department ?? 'KMC Roads',
+          status: item.status ?? 'reported',
+          createdAt: asDate(item.createdAt),
+          resolvedAt: item.status === 'resolved' ? asDate(item.updatedAt) : undefined,
+          emergencyWithinSla: item.priority === 10 && item.status === 'resolved',
+        }));
+        if (mapped.length) setReports(mapped);
+      } catch (err) {
+        console.error('Failed to load public complaints:', err);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const stats = useMemo(() => {

@@ -1,5 +1,4 @@
-import { collection, getDocs, query, Timestamp, where } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../lib/firebase';
+import { apiFetch } from '../services/api';
 
 export interface DuplicateCandidate {
   id: string;
@@ -50,39 +49,22 @@ export function findLocalDuplicate(
 }
 
 export async function findPotentialDuplicate(report: NewReportLocation): Promise<DuplicateCandidate | null> {
-  if (!isFirebaseConfigured) return null;
+  try {
+    const params = new URLSearchParams({
+      category: report.category,
+      lat: String(report.lat),
+      lng: String(report.lng),
+    });
+    const response = await apiFetch(`/complaints/duplicate-check?${params.toString()}`, {
+      skipAuth: true,
+    });
 
-  // Look back 7 days for recent reports
-  const sinceDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-  const since = Timestamp.fromDate(sinceDate);
-
-  const q = query(
-    collection(firestore, 'reports'),
-    where('category', '==', report.category),
-    where('createdAt', '>=', since),
-    where('status', '!=', 'resolved')
-  );
-
-  const snapshot = await getDocs(q);
-
-  for (const docSnap of snapshot.docs) {
-    const data = docSnap.data();
-    const lat = data.lat ?? data.coordinates?.lat;
-    const lng = data.lng ?? data.coordinates?.lng;
-    if (typeof lat !== 'number' || typeof lng !== 'number') continue;
-    const distance = distanceMeters(report, { lat, lng });
-    if (distance <= 200) { // within 200 meters
-      const createdAt = data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date();
-      const hoursAgo = Math.max(1, Math.round((Date.now() - createdAt.getTime()) / 3600000));
-      return {
-        id: docSnap.id,
-        category: data.category,
-        distanceMeters: Math.round(distance),
-        hoursAgo,
-      };
-    }
+    if (!response.ok) return null;
+    const data = await response.json();
+    return data.duplicate ?? null;
+  } catch (err) {
+    console.error('Duplicate check failed:', err);
+    return null;
   }
-
-  return null;
 }
 

@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { collection, onSnapshot, orderBy, query, Timestamp } from 'firebase/firestore';
-import { firestore, isFirebaseConfigured } from '../lib/firebase';
+import { apiFetch } from '../services/api';
 
 export type AdminStatus = 'reported' | 'inprogress' | 'resolved' | 'emergency' | 'flagged';
 
@@ -72,8 +71,8 @@ const fallbackReports: AdminReport[] = [
 ];
 
 const toDate = (value: unknown) => {
-  if (value instanceof Timestamp) return value.toDate();
   if (value instanceof Date) return value;
+  if (typeof value === 'string') return new Date(value);
   return new Date();
 };
 
@@ -81,30 +80,41 @@ export function useAdminReports() {
   const [reports, setReports] = useState<AdminReport[]>(fallbackReports);
 
   useEffect(() => {
-    if (!isFirebaseConfigured) return;
-    const q = query(collection(firestore, 'reports'), orderBy('createdAt', 'desc'));
-    return onSnapshot(q, (snapshot) => {
-      setReports(snapshot.docs.map((docSnap) => {
-        const data = docSnap.data();
-        return {
-          id: docSnap.id,
-          title: data.title ?? `${data.category ?? 'Issue'} report`,
-          category: data.category ?? data.type ?? 'Civic Issue',
-          district: data.district ?? 'Karachi',
-          location: data.location ?? data.street ?? `${data.lat ?? ''}, ${data.lng ?? ''}`,
-          status: data.status ?? 'reported',
-          submittedBy: data.submittedBy ?? data.userId ?? 'Citizen',
-          phone: data.phone,
-          createdAt: toDate(data.createdAt),
-          updatedAt: data.updatedAt ? toDate(data.updatedAt) : undefined,
-          assignedTo: data.assignedTo,
-          adminNote: data.adminNote,
-          imageUrl: data.imageUrl,
-          priority: data.priority,
-          slaDeadline: data.slaDeadline ? toDate(data.slaDeadline) : undefined,
-        };
-      }));
-    });
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const response = await apiFetch('/admin/complaints');
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const mapped = (data.complaints || []).map((item: any) => ({
+          id: String(item.id),
+          title: item.title ?? `${item.category ?? 'Issue'} report`,
+          category: item.category ?? 'Civic Issue',
+          district: item.district ?? 'Karachi',
+          location: item.street ?? `${item.latitude ?? ''}, ${item.longitude ?? ''}`,
+          status: item.status ?? 'reported',
+          submittedBy: item.userId ? `Citizen #${item.userId}` : 'Citizen',
+          phone: item.phone,
+          createdAt: toDate(item.createdAt),
+          updatedAt: item.updatedAt ? toDate(item.updatedAt) : undefined,
+          assignedTo: item.assignedTo,
+          adminNote: item.adminNote,
+          imageUrl: item.imageUrl,
+          priority: item.priority,
+          slaDeadline: item.slaDeadline ? toDate(item.slaDeadline) : undefined,
+        })) as AdminReport[];
+        if (mapped.length) setReports(mapped);
+      } catch (err) {
+        console.error('Failed to load admin complaints:', err);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return useMemo(() => ({ reports, setReports }), [reports]);

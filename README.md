@@ -89,4 +89,20 @@ npm run build
 - **KMC (Karachi Municipal Corporation)** — For providing context on urban development categories and priorities.
 - **CartoDB & OpenStreetMap** — For open-source dark map layers.
 
+---
+
+## 📈 Scalability Plan
+As Fix Karachi scales from a hackathon prototype to a city-wide platform serving millions of citizens:
+- **Unified Express/Prisma Backend:** The backend has been consolidated to an Express API backed by PostgreSQL (Prisma), ensuring ACID compliance and avoiding split-brain scenarios between Firestore and SQL.
+- **Offline-First Resilience:** Integrated IndexedDB and Service Workers via PWA plugin ensure that reports generated in low-connectivity areas (e.g., dense urban corridors in Karachi) are securely queued and synced automatically when connections are restored.
+- **Server-Side Rate Limiting:** Implemented API-level middleware to enforce a maximum of 5 reports per citizen per day, thwarting spam bots and DDoS attacks effectively without relying purely on bypassable client-side checks.
+- **Automated Duplicate Management:** Pre-emptive coordinate hashing (Haversine via 50-meter radius checks) shifts the processing load from client computations to high-performance database queries.
+
+## 🌱 Sustainability Model
+To ensure long-term viability and adoption by municipal authorities:
+- **Rule-Based Prioritization Engine:** Transparent logic weights complaints based on severity (e.g., Emergencies = 5x multiplier), automating triage without relying on costly external AI tokens.
+- **Public-Private Transparency Portal:** A robust open-data portal provides anonymous public endpoints to build institutional trust and increase community engagement.
+- **SLA Tracking & Governance:** Civic authorities can view time-to-resolution metrics dynamically, enabling performance-based municipal budgeting.
+- **Cost-Effective Infrastructure:** By shifting entirely from expensive BaaS (Firebase) read/write models to self-hostable Node/Express + PostgreSQL architectures, the operational overhead per 100,000 citizens is drastically reduced.
+
 *Building a cleaner, safer Karachi — one report at a time.* 🇵🇰

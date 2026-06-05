@@ -11,11 +11,13 @@ const JSON_DB_PATH = path.join(__dirname, '../../database.json');
 interface JsonDbSchema {
   users: any[];
   refresh_tokens: any[];
+  complaints: any[];
+  complaint_flags: any[];
 }
 
 // Initialise JSON file if not exists
 if (useLocalJSON && !fs.existsSync(JSON_DB_PATH)) {
-  fs.writeFileSync(JSON_DB_PATH, JSON.stringify({ users: [], refresh_tokens: [] }, null, 2));
+  fs.writeFileSync(JSON_DB_PATH, JSON.stringify({ users: [], refresh_tokens: [], complaints: [], complaint_flags: [] }, null, 2));
 }
 
 let pool: Pool | null = null;
@@ -33,7 +35,7 @@ const readJsonDb = (): JsonDbSchema => {
     const data = fs.readFileSync(JSON_DB_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (err) {
-    return { users: [], refresh_tokens: [] };
+    return { users: [], refresh_tokens: [], complaints: [], complaint_flags: [] };
   }
 };
 
@@ -43,6 +45,14 @@ const writeJsonDb = (data: JsonDbSchema) => {
 
 export const db = {
   isPg: !useLocalJSON,
+
+  readLocal(): JsonDbSchema {
+    return readJsonDb();
+  },
+
+  writeLocal(data: JsonDbSchema) {
+    writeJsonDb(data);
+  },
 
   async query(text: string, params: any[] = []): Promise<{ rows: any[] }> {
     if (pool) {
@@ -90,9 +100,48 @@ export const db = {
         );
       `;
 
+      const createComplaintsTable = `
+        CREATE TABLE IF NOT EXISTS complaints (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          category VARCHAR(100) NOT NULL,
+          severity INTEGER DEFAULT 5,
+          status VARCHAR(50) DEFAULT 'reported',
+          latitude DOUBLE PRECISION NOT NULL,
+          longitude DOUBLE PRECISION NOT NULL,
+          district VARCHAR(100),
+          ward VARCHAR(100),
+          street VARCHAR(255),
+          image_url TEXT,
+          blurhash TEXT,
+          priority INTEGER DEFAULT 0,
+          sla_deadline TIMESTAMP,
+          flag_count INTEGER DEFAULT 0,
+          admin_note TEXT,
+          assigned_to VARCHAR(255),
+          is_duplicate BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+      `;
+
+      const createComplaintFlagsTable = `
+        CREATE TABLE IF NOT EXISTS complaint_flags (
+          id SERIAL PRIMARY KEY,
+          complaint_id INTEGER REFERENCES complaints(id) ON DELETE CASCADE,
+          user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE (complaint_id, user_id)
+        );
+      `;
+
       try {
         await pool.query(createUsersTable);
         await pool.query(createTokensTable);
+        await pool.query(createComplaintsTable);
+        await pool.query(createComplaintFlagsTable);
         console.log('PostgreSQL tables initialized successfully.');
       } catch (err) {
         console.error('Error initializing PostgreSQL tables:', err);

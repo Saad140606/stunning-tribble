@@ -4,8 +4,8 @@ import * as jwt from 'jsonwebtoken';
 import { db } from '../config/db';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-karachi-key-zabe-fest-2026-auth';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'super-secret-karachi-refresh-key-zabe-fest-2026-auth';
+const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev';
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-for-dev';
 const JWT_ACCESS_EXPIRATION = process.env.JWT_ACCESS_EXPIRATION || '15m';
 const JWT_REFRESH_EXPIRATION = process.env.JWT_REFRESH_EXPIRATION || '7d';
 
@@ -22,7 +22,7 @@ const generateRefreshToken = (user: { id: number; email: string; role: string })
 };
 
 export const register = async (req: Request, res: Response) => {
-  const { full_name, email, phone, password, confirm_password, city, cnic, role } = req.body;
+  const { full_name, email, phone, password, confirm_password, city, cnic } = req.body;
 
   // Basic validation
   if (!full_name || !email || !phone || !password || !confirm_password || !city) {
@@ -37,7 +37,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters / پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے' });
   }
 
-  const assignedRole = role === 'admin' || role === 'authority' ? role : 'citizen';
+  const assignedRole = 'citizen'; // All new registrations are citizens by default
 
   try {
     // Check if user exists
@@ -56,8 +56,7 @@ export const register = async (req: Request, res: Response) => {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING id, full_name, email, phone, city, cnic, role, is_verified, is_active
     `;
-    // For admin role, auto-verify for convenience in development/hackathon, others false
-    const isVerified = assignedRole === 'admin' || assignedRole === 'authority';
+    const isVerified = false; // All new users are unverified
     const params = [full_name, email, phone, passwordHash, city, cnic || null, assignedRole, isVerified, true];
     
     const result = await db.query(insertQuery, params);

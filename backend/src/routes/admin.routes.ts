@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { getUsers, updateUser, deleteUser } from '../controllers/admin.controller';
+import { listAdminComplaints, updateComplaint } from '../controllers/complaints.controller';
 import { authenticateJWT, authorizeRoles } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -11,5 +12,8 @@ router.use(authorizeRoles('admin', 'authority') as any);
 router.get('/users', getUsers as any);
 router.put('/users/:id', updateUser as any);
 router.delete('/users/:id', deleteUser as any);
+
+router.get('/complaints', listAdminComplaints as any);
+router.patch('/complaints/:id', updateComplaint as any);
 
 export default router;
