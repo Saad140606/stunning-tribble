@@ -31,6 +31,7 @@ export function RegisterPage() {
     password: '',
     confirm_password: '',
     city: 'Saddar',
+    role: 'citizen',
     terms: false
   });
 
@@ -84,7 +85,7 @@ export function RegisterPage() {
         password: formData.password,
         confirm_password: formData.confirm_password,
         city: formData.city,
-        role: 'citizen'
+        role: formData.role
       });
       navigate('/', { replace: true });
     } catch (err: any) {
@@ -226,23 +227,41 @@ export function RegisterPage() {
               </div>
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-semibold block" style={{ color: '#8BA3C7' }}>
-                {t.city} (District / Town) <span className="text-red-400">*</span>
-              </label>
-              <select
-                name="city"
-                value={formData.city}
-                onChange={handleChange}
-                className="w-full px-4 py-2 text-sm rounded-xl outline-none"
-                style={INPUT_STYLE}
-              >
-                {KARACHI_AREAS.map((area) => (
-                  <option key={area} value={area} className="bg-[#0F2040]">
-                    {area}
-                  </option>
-                ))}
-              </select>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold block" style={{ color: '#8BA3C7' }}>
+                  {t.city} (District / Town) <span className="text-red-400">*</span>
+                </label>
+                <select
+                  name="city"
+                  value={formData.city}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 text-sm rounded-xl outline-none"
+                  style={INPUT_STYLE}
+                >
+                  {KARACHI_AREAS.map((area) => (
+                    <option key={area} value={area} className="bg-[#0F2040]">
+                      {area}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold block" style={{ color: '#8BA3C7' }}>
+                  Account Type <span className="text-red-400">*</span>
+                </label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 text-sm rounded-xl outline-none"
+                  style={INPUT_STYLE}
+                >
+                  <option value="citizen" className="bg-[#0F2040]">Citizen</option>
+                  <option value="admin" className="bg-[#0F2040]">Administrator</option>
+                </select>
+              </div>
             </div>
 
             <div className="flex items-start gap-2 pt-1">

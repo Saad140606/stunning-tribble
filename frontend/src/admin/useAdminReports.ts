@@ -19,6 +19,9 @@ export interface AdminReport {
   imageUrl?: string;
   priority?: number;
   slaDeadline?: Date;
+  latitude?: number;
+  longitude?: number;
+  isDuplicate?: boolean;
 }
 
 const fallbackReports: AdminReport[] = [
@@ -104,6 +107,9 @@ export function useAdminReports() {
           imageUrl: item.imageUrl,
           priority: item.priority,
           slaDeadline: item.slaDeadline ? toDate(item.slaDeadline) : undefined,
+          latitude: item.latitude != null ? Number(item.latitude) : undefined,
+          longitude: item.longitude != null ? Number(item.longitude) : undefined,
+          isDuplicate: item.isDuplicate ?? false,
         })) as AdminReport[];
         if (mapped.length) setReports(mapped);
       } catch (err) {

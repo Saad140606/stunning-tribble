@@ -373,3 +373,66 @@ export const checkDuplicate = async (req: Request, res: Response) => {
     return res.status(500).json({ error: 'Server error / سرور کی خرابی' });
   }
 };
+
+export const bulkUpdateComplaints = async (req: AuthenticatedRequest, res: Response) => {
+  const { ids, status, assignedTo } = req.body;
+
+  if (!ids || !Array.isArray(ids) || ids.length === 0) {
+    return res.status(400).json({ error: 'ids array is required / شکایات کی فہرست درکار ہے' });
+  }
+
+  if (!status && assignedTo === undefined) {
+    return res.status(400).json({ error: 'No fields provided for update / کوئی معلومات فراہم نہیں کی گئیں' });
+  }
+
+  try {
+    if (db.isPg) {
+      const fields: string[] = [];
+      const values: any[] = [];
+      let index = 1;
+
+      if (status) {
+        fields.push(`status = $${index++}`);
+        values.push(status);
+      }
+      if (assignedTo !== undefined) {
+        fields.push(`assigned_to = $${index++}`);
+        values.push(assignedTo);
+      }
+      fields.push('updated_at = NOW()');
+
+      // Build the IN clause for ids
+      const idPlaceholders = ids.map((_, i) => `$${index + i}`).join(', ');
+      values.push(...ids.map(Number));
+
+      const query = `UPDATE complaints SET ${fields.join(', ')} WHERE id IN (${idPlaceholders}) RETURNING *`;
+      const result = await db.query(query, values);
+
+      return res.status(200).json({
+        message: `${result.rows.length} complaints updated / ${result.rows.length} شکایات اپ ڈیٹ ہو گئیں`,
+        updated: result.rows.length,
+      });
+    }
+
+    // Local JSON fallback
+    const data = db.readLocal();
+    let updatedCount = 0;
+    for (const complaint of data.complaints) {
+      if (ids.includes(String(complaint.id))) {
+        if (status) complaint.status = status;
+        if (assignedTo !== undefined) complaint.assigned_to = assignedTo;
+        complaint.updated_at = new Date().toISOString();
+        updatedCount++;
+      }
+    }
+    db.writeLocal(data);
+
+    return res.status(200).json({
+      message: `${updatedCount} complaints updated / ${updatedCount} شکایات اپ ڈیٹ ہو گئیں`,
+      updated: updatedCount,
+    });
+  } catch (err) {
+    console.error('Bulk update complaints error:', err);
+    return res.status(500).json({ error: 'Server error / سرور کی خرابی' });
+  }
+};

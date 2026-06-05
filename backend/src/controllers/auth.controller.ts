@@ -22,7 +22,7 @@ const generateRefreshToken = (user: { id: number; email: string; role: string })
 };
 
 export const register = async (req: Request, res: Response) => {
-  const { full_name, email, phone, password, confirm_password, city, cnic } = req.body;
+  const { full_name, email, phone, password, confirm_password, city, cnic, role } = req.body;
 
   // Basic validation
   if (!full_name || !email || !phone || !password || !confirm_password || !city) {
@@ -37,7 +37,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters / پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے' });
   }
 
-  const assignedRole = 'citizen'; // All new registrations are citizens by default
+  const assignedRole = role === 'admin' ? 'admin' : 'citizen'; // Accept requested role
 
   try {
     // Check if user exists

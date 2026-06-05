@@ -538,6 +538,26 @@ function CitizenApp() {
     storeLanguage(language);
   };
 
+  const handleUpvote = (reportId: string) => {
+    setReports(prev => prev.map(r => r.id === reportId ? { 
+      ...r, 
+      upvotes: r.upvotes + (r.hasUserUpvoted ? -1 : 1), 
+      hasUserUpvoted: !r.hasUserUpvoted 
+    } : r));
+  };
+
+  const handleAddComment = (reportId: string, comment: string) => {
+    setReports(prev => prev.map(r => r.id === reportId ? { 
+      ...r, 
+      comments: [...(r.comments || []), { 
+        id: Date.now().toString(), 
+        text: comment, 
+        timestamp: new Date(), 
+        author: authUser?.email?.split('@')[0] || 'Current User' 
+      }] 
+    } : r));
+  };
+
   // Show loading screen first
   if (isLoading) {
     return <LoadingScreen />;

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { BarChart3, Clock, FileText, LayoutDashboard, LogOut, Siren, Users } from 'lucide-react';
+import { BarChart3, Clock, FileText, LayoutDashboard, LogOut, Map, Siren, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DashboardScreen } from './DashboardScreen';
 import { ReportsTable } from './ReportsTable';
 import { EmergencyQueue } from './EmergencyQueue';
 import { AdminReport, useAdminReports } from './useAdminReports';
 import { UserManagement } from './UserManagement';
+import { AdminHeatmap } from './AdminHeatmap';
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -14,6 +15,7 @@ const tabs = [
   { id: 'inprogress', label: 'In Progress', icon: Clock },
   { id: 'resolved', label: 'Resolved', icon: FileText },
   { id: 'emergency', label: 'Emergency Queue', icon: Siren },
+  { id: 'heatmap', label: 'Heatmap', icon: Map },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'users', label: 'User Directory', icon: Users },
 ];
@@ -24,7 +26,7 @@ export function AdminApp() {
   const { profile, signOut } = useAuth();
 
   const filtered = reports.filter((report) => {
-    if (active === 'all' || active === 'dashboard' || active === 'analytics') return true;
+    if (active === 'all' || active === 'dashboard' || active === 'analytics' || active === 'heatmap') return true;
     if (active === 'pending') return report.status === 'reported';
     if (active === 'emergency') return report.status === 'emergency' || report.priority === 10;
     return report.status === active;
@@ -80,11 +82,11 @@ export function AdminApp() {
         <div className="p-4 lg:p-6">
           {(active === 'dashboard' || active === 'analytics') && <DashboardScreen reports={reports} />}
           {active === 'emergency' && <EmergencyQueue reports={reports} />}
+          {active === 'heatmap' && <AdminHeatmap reports={reports} />}
           {active === 'users' && <UserManagement />}
-          {!['dashboard', 'analytics', 'emergency', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
+          {!['dashboard', 'analytics', 'emergency', 'heatmap', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
         </div>
       </main>
     </div>
   );
 }
-
