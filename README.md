@@ -84,6 +84,11 @@ npm run build
 
 ---
 
+## 👥 Contributors
+- **Saad140606** — Lead Developer
+- **nabeelalii0707** (Nabeel Ali) — Core Development
+- **ayaan-kashif** (Ayaan Kashif) — Development
+
 ## 🏛️ Acknowledgments
 - **ZabeFest 2026** — SZABIST University's premier hackathon.
 - **KMC (Karachi Municipal Corporation)** — For providing context on urban development categories and priorities.
