@@ -36,8 +36,10 @@ export function BottomNavigation({ currentScreen, onScreenChange, language }: Bo
     <div
       className="fixed bottom-0 left-0 right-0 max-w-sm mx-auto px-4 py-2 z-[9999] pointer-events-auto"
       style={{
-        background: '#0A1628',
-        borderTop: '1px solid rgba(0, 212, 255, 0.1)',
+        background: 'rgba(10, 22, 40, 0.85)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
+        borderTop: '1px solid rgba(0, 212, 255, 0.12)',
       }}
     >
       <div className="flex items-center justify-around pointer-events-auto relative">
