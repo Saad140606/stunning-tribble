@@ -120,6 +120,8 @@ export const db = {
           priority INTEGER DEFAULT 0,
           sla_deadline TIMESTAMP,
           flag_count INTEGER DEFAULT 0,
+          upvotes INTEGER DEFAULT 0,
+          verify_count INTEGER DEFAULT 0,
           admin_note TEXT,
           assigned_to VARCHAR(255),
           is_duplicate BOOLEAN DEFAULT FALSE,

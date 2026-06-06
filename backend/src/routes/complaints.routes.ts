@@ -7,6 +7,7 @@ import {
   checkDuplicate,
   flagComplaint,
   upvoteComplaint,
+  verifyComplaint,
   addComment,
   aiAnalyze,
 } from '../controllers/complaints.controller';
@@ -20,6 +21,7 @@ router.post('/', authenticateJWT as any, rateLimiterMiddleware as any, createCom
 router.post('/:id/flag', authenticateJWT as any, flagComplaint as any);
 // FIX 8: Upvote and comment routes
 router.post('/:id/upvote', authenticateJWT as any, upvoteComplaint as any);
+router.post('/:id/verify', authenticateJWT as any, verifyComplaint as any);
 router.post('/:id/comment', authenticateJWT as any, addComment as any);
 
 export default router;

@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet.heat';
 import { apiFetch } from '../services/api';
 import 'leaflet/dist/leaflet.css';
-import { Heart, Eye, X, MapPin, Layers, Flame } from 'lucide-react';
+import { Heart, Eye, X, MapPin, Layers, Flame, ThumbsUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Report, User } from '../App';
 import { translations } from './translations';
@@ -21,6 +21,7 @@ interface LeafletMapScreenProps {
   user: User;
   onReportSelect: (report: Report) => void;
   onUpvote: (reportId: string) => void;
+  onVerify: (reportId: string) => void;
 }
 
 type FilterType = 'all' | 'pothole' | 'garbage' | 'water' | 'safety' | 'streetlight';
@@ -35,7 +36,7 @@ const categoryColors: Record<string, string> = {
   safety: '#FF3B3B',
 };
 
-export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: LeafletMapScreenProps) {
+export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote, onVerify }: LeafletMapScreenProps) {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [selectedPin, setSelectedPin] = useState<Report | null>(null);
   const [reportCoordinates, setReportCoordinates] = useState<Map<string, [number, number]>>(new Map());
@@ -385,6 +386,19 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
                 >
                   <Heart className="w-4 h-4" fill={selectedPin.hasUserUpvoted ? '#00D4FF' : 'none'} />
                   <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{selectedPin.upvotes}</span>
+                </motion.button>
+                <motion.button
+                  className="py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm"
+                  style={{
+                    background: selectedPin.hasUserVerified ? 'rgba(0,200,150,0.15)' : 'rgba(0,200,150,0.05)',
+                    color: selectedPin.hasUserVerified ? '#00C896' : '#4A6080',
+                    border: '1px solid rgba(0,200,150,0.1)',
+                  }}
+                  onClick={() => onVerify(selectedPin.id)}
+                  whileTap={{ scale: 1.05 }}
+                >
+                  <ThumbsUp className="w-4 h-4" fill={selectedPin.hasUserVerified ? '#00C896' : 'none'} />
+                  <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{selectedPin.verify_count || 0}</span>
                 </motion.button>
               </div>
             </div>

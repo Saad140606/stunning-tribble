@@ -221,6 +221,16 @@ export const logout = async (req: Request, res: Response) => {
   return res.status(200).json({ message: 'Logout successful / لاگ آؤٹ کامیاب رہا' });
 };
 
+import nodemailer from 'nodemailer';
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER || '',
+    pass: process.env.GMAIL_PASS || '',
+  },
+});
+
 export const forgotPassword = async (req: Request, res: Response) => {
   const { email } = req.body;
 
@@ -234,16 +244,26 @@ export const forgotPassword = async (req: Request, res: Response) => {
       return res.status(404).json({ error: 'No user registered with this email / اس ای میل والا کوئی صارف نہیں ہے' });
     }
 
-    // Mock reset flow: Generate a reset token (JWT)
     const user = result.rows[0];
     const resetToken = jwt.sign({ id: user.id, type: 'reset' }, JWT_SECRET, { expiresIn: '15m' });
+    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
 
-    // In a real application, you would mail this link: e.g., /reset-password?token=XYZ
-    // For this hackathon project, we return it in the response to make it easy to inspect/test!
+    const mailOptions = {
+      from: `"Fix Karachi" <${process.env.GMAIL_USER || 'noreply@fixkarachi.org'}>`,
+      to: email,
+      subject: 'Reset Password / پاس ورڈ دوبارہ ترتیب دیں',
+      text: `Hello, you requested a password reset. Click here to reset your password: ${resetLink}`,
+      html: `<p>Hello,</p><p>You requested a password reset. Click the link below to reset your password:</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+    };
+
+    if (process.env.GMAIL_USER && process.env.GMAIL_PASS) {
+      await transporter.sendMail(mailOptions);
+    } else {
+      console.log('Gmail credentials not set, logging reset link:', resetLink);
+    }
+
     return res.status(200).json({
-      message: 'Reset instructions generated / پاس ورڈ دوبارہ ترتیب دینے کی ہدایات جاری کر دی گئیں',
-      resetToken, // Hackathon preview
-      resetLink: `http://localhost:3000/reset-password?token=${resetToken}`
+      message: 'Reset instructions sent to your email / پاس ورڈ دوبارہ ترتیب دینے کی ہدایات ای میل کر دی گئیں'
     });
   } catch (err) {
     console.error('Forgot password error:', err);

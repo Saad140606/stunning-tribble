@@ -3,7 +3,7 @@ import {
   Search, Heart, MessageCircle, Flag, X, MapPin, Clock, Bell,
   AlertTriangle, Trash2, Lightbulb, Droplets, ShieldAlert, Zap,
   Filter, ChevronDown, TrendingUp, CheckCircle2, Activity, Plus,
-  ArrowUpRight, BarChart2, Flame
+  ArrowUpRight, BarChart2, Flame, ThumbsUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Report, Comment, User } from '../App';
@@ -18,6 +18,7 @@ interface HomeScreenProps {
   user: User;
   onReportSelect: (report: Report) => void;
   onUpvote: (reportId: string) => void;
+  onVerify: (reportId: string) => void;
   onFlag: (reportId: string) => void;
   onAddComment: (reportId: string, comment: string) => void;
   selectedReport: Report | null;
@@ -53,6 +54,7 @@ export function HomeScreen({
   user,
   onReportSelect,
   onUpvote,
+  onVerify,
   onFlag,
   onAddComment,
   selectedReport,
@@ -455,6 +457,23 @@ export function HomeScreen({
                           <span style={{ fontFamily: "'JetBrains Mono'" }}>{report.upvotes}</span>
                         </motion.button>
 
+                        {/* Verify */}
+                        <motion.button
+                          onClick={e => { e.stopPropagation(); onVerify(report.id); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: 5,
+                            padding: '5px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600,
+                            background: report.hasUserVerified ? 'rgba(0,200,150,0.15)' : 'rgba(0,200,150,0.05)',
+                            color: report.hasUserVerified ? '#00C896' : '#4A6080',
+                            border: `1px solid ${report.hasUserVerified ? 'rgba(0,200,150,0.3)' : 'rgba(0,200,150,0.08)'}`,
+                            cursor: 'pointer',
+                          }}
+                          whileTap={{ scale: 1.2 }}
+                        >
+                          <ThumbsUp className="w-3.5 h-3.5" fill={report.hasUserVerified ? '#00C896' : 'none'} />
+                          <span style={{ fontFamily: "'JetBrains Mono'" }}>{report.verify_count || 0}</span>
+                        </motion.button>
+
                         {/* Comments */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#4A6080' }}>
                           <MessageCircle className="w-3.5 h-3.5" />
@@ -666,7 +685,7 @@ export function HomeScreen({
                     >
                       {selectedReport.flag_count && selectedReport.flag_count >= 3
                         ? (user.language === 'ur' ? 'مشکوک / غلط رپورٹ' : 'Flagged/Suspicious')
-                        : selectedReport.upvotes >= 5
+                        : (selectedReport.verify_count ?? 0) >= 5
                           ? (user.language === 'ur' ? 'کمیونٹی سے تصدیق شدہ ✓' : 'Community Verified ✓')
                           : (user.language === 'ur' ? 'تصدیق کا انتظار' : 'Awaiting Validation')}
                     </span>
@@ -678,14 +697,14 @@ export function HomeScreen({
                           ? 'انتباہ: شہریوں کی جانب سے اس مسئلے کو غلط یا نامناسب قرار دیا گیا ہے۔' 
                           : 'Warning: This issue has been flagged multiple times by citizens as inappropriate or fake.')
                       : (user.language === 'ur'
-                          ? 'شہریوں کی مدد کریں۔ اگر مسئلہ واقعی موجود ہے تو ووٹ دیں، یا غلط ہونے کی صورت میں رپورٹ کریں۔'
+                          ? 'شہریوں کی مدد کریں۔ اگر مسئلہ واقعی موجود ہے تو تصدیق کریں، یا غلط ہونے کی صورت میں رپورٹ کریں۔'
                           : 'Help municipal workers prioritize this issue. Verify if it is real, or flag it if it is spam or incorrect.')}
                   </p>
                   
                   <div style={{ display: 'flex', gap: 10 }}>
-                    {/* Verify (Upvote) Button */}
+                    {/* Verify Button */}
                     <motion.button
-                      onClick={() => onUpvote(selectedReport.id)}
+                      onClick={() => onVerify(selectedReport.id)}
                       style={{
                         flex: 1,
                         display: 'flex',
@@ -697,14 +716,14 @@ export function HomeScreen({
                         fontSize: 12,
                         fontWeight: 600,
                         cursor: 'pointer',
-                        background: selectedReport.hasUserUpvoted ? 'rgba(0,200,150,0.15)' : 'rgba(0,212,255,0.06)',
-                        color: selectedReport.hasUserUpvoted ? '#00C896' : '#8BA3C7',
-                        border: `1px solid ${selectedReport.hasUserUpvoted ? 'rgba(0,200,150,0.3)' : 'rgba(0,212,255,0.12)'}`,
+                        background: selectedReport.hasUserVerified ? 'rgba(0,200,150,0.15)' : 'rgba(0,212,255,0.06)',
+                        color: selectedReport.hasUserVerified ? '#00C896' : '#8BA3C7',
+                        border: `1px solid ${selectedReport.hasUserVerified ? 'rgba(0,200,150,0.3)' : 'rgba(0,212,255,0.12)'}`,
                       }}
                       whileTap={{ scale: 0.97 }}
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" style={{ color: selectedReport.hasUserUpvoted ? '#00C896' : '#8BA3C7' }} />
-                      {user.language === 'ur' ? 'تصدیق' : 'Verify'} ({selectedReport.upvotes})
+                      <ThumbsUp className="w-3.5 h-3.5" style={{ color: selectedReport.hasUserVerified ? '#00C896' : '#8BA3C7' }} />
+                      {user.language === 'ur' ? 'تصدیق' : 'Verify'} ({selectedReport.verify_count || 0})
                     </motion.button>
                     
                     {/* Flag/Spam Button */}

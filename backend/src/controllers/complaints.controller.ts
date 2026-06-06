@@ -44,6 +44,8 @@ const mapComplaintRow = (row: any) => ({
   priority: row.priority,
   slaDeadline: row.sla_deadline,
   flagCount: row.flag_count ?? 0,
+  upvotes: row.upvotes ?? 0,
+  verifyCount: row.verify_count ?? 0,
   adminNote: row.admin_note,
   assignedTo: row.assigned_to,
   isDuplicate: row.is_duplicate ?? false,
@@ -153,6 +155,8 @@ export const createComplaint = async (req: AuthenticatedRequest, res: Response) 
       priority: Number(priority) || 0,
       sla_deadline: slaDeadline ? new Date(slaDeadline).toISOString() : null,
       flag_count: 0,
+      upvotes: 0,
+      verify_count: 0,
       admin_note: null,
       assigned_to: null,
       is_duplicate: Boolean(isDuplicate),
@@ -464,6 +468,35 @@ export const upvoteComplaint = async (req: AuthenticatedRequest, res: Response) 
   } catch (err) {
     console.error('Upvote complaint error:', err);
     return res.status(500).json({ error: 'Failed to upvote / اپ ووٹ ناکام رہا' });
+  }
+};
+
+// Toggle verify a complaint (increments verify_count, persist to DB)
+export const verifyComplaint = async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized / غیر مجاز' });
+  }
+  const { id } = req.params;
+  try {
+    if (db.isPg) {
+      await db.query(
+        'UPDATE complaints SET verify_count = COALESCE(verify_count, 0) + 1, updated_at = NOW() WHERE id = $1',
+        [Number(id)]
+      );
+      return res.json({ success: true });
+    }
+    // Local JSON fallback
+    const data = db.readLocal();
+    const target = data.complaints.find((c: any) => String(c.id) === String(id));
+    if (target) {
+      target.verify_count = (target.verify_count || 0) + 1;
+      target.updated_at = new Date().toISOString();
+      db.writeLocal(data);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Verify complaint error:', err);
+    return res.status(500).json({ error: 'Failed to verify / تصدیق ناکام رہی' });
   }
 };
 

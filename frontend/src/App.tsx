@@ -58,6 +58,8 @@ export interface Report {
   isDuplicate?: boolean;
   blurhash?: string;
   flag_count?: number;
+  verify_count?: number;
+  hasUserVerified?: boolean;
 }
 
 export interface MediaItem {
@@ -128,6 +130,8 @@ function mapApiComplaintToReport(item: any): Report {
     isDuplicate: Boolean(item.isDuplicate),
     blurhash: item.blurhash,
     flag_count: Number(item.flagCount ?? item.flag_count ?? 0),
+    verify_count: Number(item.verifyCount ?? item.verify_count ?? 0),
+    hasUserVerified: Boolean(item.hasUserVerified),
   };
 }
 
@@ -605,6 +609,27 @@ function CitizenApp() {
     } catch { /* optimistic already applied */ }
   };
 
+  const handleVerify = async (reportId: string) => {
+    const report = reports.find((item) => item.id === reportId);
+    setReports(prev => prev.map(r => r.id === reportId ? {
+      ...r,
+      verify_count: (r.verify_count ?? 0) + (r.hasUserVerified ? -1 : 1),
+      hasUserVerified: !r.hasUserVerified,
+    } : r));
+    if (report?.userId && report.userId !== authUser?.uid && !report.hasUserVerified) {
+      createNotification({
+        userId: report.userId,
+        title: 'Your report was verified by a citizen',
+        message: `${report.title} was verified as a real issue by another citizen nearby.`,
+        type: 'report_verified',
+        relatedReportId: report.id,
+      }).catch((err) => console.error('Failed to create verification notification:', err));
+    }
+    try {
+      await apiFetch(`/complaints/${reportId}/verify`, { method: 'POST' });
+    } catch { /* optimistic already applied */ }
+  };
+
   // FIX 8: Persist comments to backend with optimistic update
   const handleAddComment = async (reportId: string, comment: string) => {
     const newComment = {
@@ -749,6 +774,7 @@ function CitizenApp() {
                     user={user}
                     onReportSelect={setSelectedReport}
                     onUpvote={handleUpvote}
+                    onVerify={handleVerify}
                     onFlag={handleFlag}
                     onAddComment={handleAddComment}
                     selectedReport={selectedReport}
@@ -796,6 +822,7 @@ function CitizenApp() {
                 user={user}
                 onReportSelect={setSelectedReport}
                 onUpvote={handleUpvote}
+                onVerify={handleVerify}
               />
             )}
           </React.Suspense>

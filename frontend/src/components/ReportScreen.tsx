@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Camera, MapPin, X, Check, ChevronRight, ChevronLeft, Zap, Trash2, Lightbulb, Droplets, AlertTriangle, Sparkles, Award } from 'lucide-react';
+import { Camera, MapPin, X, Check, ChevronRight, ChevronLeft, Zap, Trash2, Lightbulb, Droplets, AlertTriangle, Sparkles, Award, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Report, User } from '../App';
 import { translations } from './translations';
@@ -72,6 +72,7 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
   const [submitAnyway, setSubmitAnyway] = useState(false);
   const rateLimit = useRateLimit();
   const [location, setLocation] = useState<{lat: number, lng: number, ward: string, district: string} | null>(null);
+  const [severity, setSeverity] = useState(7);
 
   const t = translations[user.language];
 
@@ -157,7 +158,7 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
       aiTag: catInfo?.value || 'Unknown',
       aiConfidence: getAIConfidence(category, title, description),
       status: 'reported' as const,
-      severity: 7,
+      severity: severity,
       type: category,
       userId: authUser?.uid ?? 'current-user',
       priority: 'medium',
@@ -440,6 +441,55 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
                     <p style={{ fontSize: '13px', color: '#8BA3C7', lineHeight: '1.5' }}>
                       {location ? `${location.ward}, district of ${location.district}, Karachi, Sindh, Pakistan` : 'Detecting your civic constituency...'}
                     </p>
+                  </motion.div>
+
+                  {/* Severity Selector */}
+                  <motion.div
+                    className="rounded-xl p-4 space-y-3"
+                    style={{ background: '#0A1628', border: '1px solid rgba(0,212,255,0.06)' }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <Flame className="w-4 h-4" style={{ color: severity >= 8 ? '#FF3B3B' : severity >= 5 ? '#FFB800' : '#00C896' }} />
+                        <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0F4FF' }}>
+                          {user.language === 'ur' ? 'شدت / سنگینی' : 'Issue Severity'}
+                        </span>
+                      </div>
+                      <span 
+                        style={{ 
+                          fontFamily: "'JetBrains Mono'", 
+                          fontSize: '14px', 
+                          fontWeight: 900,
+                          color: severity >= 8 ? '#FF3B3B' : severity >= 5 ? '#FFB800' : '#00C896',
+                          background: severity >= 8 ? 'rgba(255,59,59,0.1)' : severity >= 5 ? 'rgba(255,184,0,0.1)' : 'rgba(0,200,150,0.1)',
+                          padding: '2px 8px',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        {severity} / 10
+                      </span>
+                    </div>
+                    
+                    <input 
+                      type="range" 
+                      min="1" 
+                      max="10" 
+                      value={severity}
+                      onChange={(e) => setSeverity(Number(e.target.value))}
+                      className="w-full h-1.5 rounded-lg appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, #00C896 0%, #FFB800 50%, #FF3B3B 100%)`,
+                        outline: 'none',
+                      }}
+                    />
+                    
+                    <div className="flex justify-between text-xs font-semibold" style={{ color: '#4A6080' }}>
+                      <span>{user.language === 'ur' ? 'معمولی' : 'Low'}</span>
+                      <span>{user.language === 'ur' ? 'درمیانہ' : 'Medium'}</span>
+                      <span>{user.language === 'ur' ? 'انتہائی شدید' : 'Critical'}</span>
+                    </div>
                   </motion.div>
 
                   {/* Navigation buttons */}
