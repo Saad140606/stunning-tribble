@@ -1,27 +1,10 @@
 /*! tailwindcss v4.1.3 | MIT License | https://tailwindcss.com */
 
+/* Import globals design system */
+@import './styles/globals.css';
+
 /* Import custom map styles */
 @import './styles/map.css';
-
-/* Responsive app shell */
-.mobile-container {
-  position: relative;
-}
-
-@media (min-width: 768px) {
-  .mobile-container {
-    max-width: none !important;
-    width: 100% !important;
-    margin: 0 !important;
-  }
-}
-
-@media (max-width: 767px) {
-  .mobile-container {
-    width: 100% !important;
-    max-width: 100% !important;
-  }
-}
 
 @layer properties {
   @supports (((-webkit-hyphens: none)) and (not (margin-trim: inline))) or ((-moz-orient: inline) and (not (color: rgb(from red r g b)))) {

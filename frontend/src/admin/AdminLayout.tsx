@@ -42,8 +42,8 @@ export function AdminApp() {
   };
 
   return (
-    <div className="min-h-screen lg:flex" style={{ background: '#0A1628' }}>
-      <aside className="hidden lg:block w-64 p-4" style={{ background: '#0F2040', borderRight: '1px solid rgba(0,212,255,0.1)' }}>
+    <div className="min-h-screen lg:flex" style={{ background: 'linear-gradient(160deg, #081223 0%, #0A1628 45%, #0D1F3C 100%)' }}>
+      <aside className="hidden lg:block w-64 p-4" style={{ background: 'rgba(8, 18, 35, 0.95)', borderRight: '1px solid rgba(0,212,255,0.1)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
         <h1 className="mb-6" style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 900 }}>KMC Admin Panel</h1>
         <nav className="space-y-2">
           {tabs.map((tab) => (
@@ -60,7 +60,7 @@ export function AdminApp() {
       </aside>
 
       <main className="flex-1">
-        <header className="sticky top-0 z-30 p-4" style={{ background: '#0A1628', borderBottom: '1px solid rgba(0,212,255,0.1)' }}>
+        <header className="sticky top-0 z-30 p-4" style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.1)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
           <div className="flex items-center justify-between gap-3">
             <div>
               <h1 style={{ color: '#F0F4FF', fontWeight: 900, fontSize: 20 }}>KMC Admin Panel</h1>

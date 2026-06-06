@@ -1,5 +1,5 @@
 import React from 'react';
-import { BarChart3, Bell, Home, Map, Plus, User, Shield, Wifi, WifiOff } from 'lucide-react';
+import { BarChart3, Bell, Home, Map, Plus, User, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Screen } from '../App';
 import { useAuth } from '../context/AuthContext';
@@ -13,12 +13,12 @@ interface DesktopNavigationProps {
 }
 
 const navItems: Array<{ id: Screen; label: string; icon: React.ElementType; description: string }> = [
-  { id: 'home', label: 'Live Feed', icon: Home, description: 'Latest reports' },
-  { id: 'analytics', label: 'Analytics', icon: BarChart3, description: 'City dashboard' },
-  { id: 'report', label: 'Report Issue', icon: Plus, description: 'Submit a report' },
-  { id: 'map', label: 'Civic Map', icon: Map, description: 'Live heatmap' },
-  { id: 'notifications', label: 'Notifications', icon: Bell, description: 'Alerts & updates' },
-  { id: 'profile', label: 'My Profile', icon: User, description: 'Your reports' },
+  { id: 'home',          label: 'Live Feed',      icon: Home,     description: 'Latest reports'  },
+  { id: 'analytics',     label: 'Analytics',      icon: BarChart3, description: 'City dashboard' },
+  { id: 'report',        label: 'Report Issue',   icon: Plus,     description: 'Submit a report'  },
+  { id: 'map',           label: 'Civic Map',      icon: Map,      description: 'Live heatmap'     },
+  { id: 'notifications', label: 'Notifications',  icon: Bell,     description: 'Alerts & updates' },
+  { id: 'profile',       label: 'My Profile',     icon: User,     description: 'Your reports'     },
 ];
 
 export function DesktopNavigation({
@@ -45,27 +45,26 @@ export function DesktopNavigation({
         >
           FK
         </motion.div>
-        <div>
-          <h1 className="fk-desktop-brand h1">Fix Karachi</h1>
-          <p className="fk-desktop-brand p">Civic Command Center</p>
+        <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+          <h1 style={{ color: '#F0F4FF', fontSize: 17, fontWeight: 900, letterSpacing: '-0.02em', lineHeight: 1.2, whiteSpace: 'nowrap' }}>
+            Fix Karachi
+          </h1>
+          <p style={{ color: '#4A6080', fontSize: 11, marginTop: 2, whiteSpace: 'nowrap' }}>Civic Command Center</p>
         </div>
         {/* Live status dot */}
         <div
           style={{
             marginLeft: 'auto',
-            width: 8, height: 8, borderRadius: '50%',
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
             background: isOnline ? '#00C896' : '#FF3B3B',
             boxShadow: isOnline ? '0 0 8px rgba(0,200,150,0.6)' : '0 0 8px rgba(255,59,59,0.6)',
-            flexShrink: 0,
           }}
           title={isOnline ? 'Online' : 'Offline'}
         />
       </div>
 
-      {/* Section label */}
-      <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', color: '#2A4060', textTransform: 'uppercase', padding: '0 4px 8px', marginTop: 4 }}>
-        Navigation
-      </p>
+      {/* Section label — hidden when tablet sidebar collapsed */}
+      <p className="fk-nav-section-label">Navigation</p>
 
       {/* Nav items */}
       <nav className="fk-desktop-nav-list">
@@ -80,12 +79,14 @@ export function DesktopNavigation({
               onClick={() => onScreenChange(item.id)}
               className="fk-desktop-nav-item"
               data-active={active}
-              whileHover={{ x: active ? 0 : 3 }}
+              whileHover={{ x: active ? 0 : 2 }}
               whileTap={{ scale: 0.97 }}
               style={
                 isReport
                   ? {
-                      background: active ? 'rgba(0,212,255,0.12)' : 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(139,92,246,0.06))',
+                      background: active
+                        ? 'rgba(0,212,255,0.12)'
+                        : 'linear-gradient(135deg, rgba(0,212,255,0.08), rgba(139,92,246,0.06))',
                       color: '#00D4FF',
                       border: '1px solid rgba(0,212,255,0.2)',
                       marginTop: 4,
@@ -93,6 +94,7 @@ export function DesktopNavigation({
                   : {}
               }
             >
+              {/* Icon container — always visible */}
               <div
                 style={{
                   width: 30, height: 30, borderRadius: 8, flexShrink: 0,
@@ -103,23 +105,18 @@ export function DesktopNavigation({
               >
                 <Icon className="h-4 w-4" />
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
+
+              {/* Label + desc — hidden when tablet collapsed via CSS */}
+              <div className="fk-nav-label">
                 <div style={{ lineHeight: 1.2 }}>{item.label}</div>
                 {active && (
-                  <div style={{ fontSize: 10, color: '#4A9080', marginTop: 1, lineHeight: 1 }}>
-                    {item.description}
-                  </div>
+                  <div className="fk-nav-desc">{item.description}</div>
                 )}
               </div>
+
+              {/* Badge — hidden when collapsed */}
               {item.id === 'notifications' && (
-                <div style={{
-                  width: 18, height: 18, borderRadius: '50%',
-                  background: 'rgba(255,59,59,0.15)', color: '#FF3B3B',
-                  fontSize: 9, fontWeight: 700,
-                  display: 'grid', placeItems: 'center', flexShrink: 0,
-                }}>
-                  3
-                </div>
+                <div className="fk-nav-badge">3</div>
               )}
             </motion.button>
           );
@@ -129,28 +126,38 @@ export function DesktopNavigation({
       {/* Divider */}
       <div style={{ height: 1, background: 'rgba(0,212,255,0.07)', margin: '14px 0' }} />
 
-      {/* Footer */}
+      {/* Footer — hidden when tablet collapsed */}
       <div className="fk-desktop-nav-footer">
+        <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <button className="fk-language-btn" style={{ flex: 1 }} onClick={onToggleLanguage}>
+            🌐 {languageLabel}
+          </button>
+          <button
+            className="fk-language-btn"
+            style={{ width: 36, flex: 'none', padding: 0, display: 'grid', placeItems: 'center' }}
+          >
+            <Bell size={16} />
+          </button>
+        </div>
+
         {/* User info */}
         <div className="fk-desktop-nav-user">
           <div className="fk-desktop-nav-avatar">{initials}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: 12, fontWeight: 600, color: '#F0F4FF', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <div style={{ flex: 1, minWidth: 0, overflow: 'hidden' }}>
+            <p style={{
+              fontSize: 12, fontWeight: 600, color: '#F0F4FF', lineHeight: 1.2,
+              overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            }}>
               {profile?.full_name || authUser?.email?.split('@')[0] || 'Citizen'}
             </p>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
               {profile?.role === 'admin' && <Shield className="w-3 h-3" style={{ color: '#00D4FF' }} />}
-              <p style={{ fontSize: 10, color: '#4A6080', textTransform: 'capitalize' }}>
+              <p style={{ fontSize: 10, color: '#4A6080', textTransform: 'capitalize', whiteSpace: 'nowrap' }}>
                 {isOnline ? '🟢' : '🔴'} {profile?.role || 'Citizen'}
               </p>
             </div>
           </div>
         </div>
-
-        {/* Language toggle */}
-        <button className="fk-language-btn" onClick={onToggleLanguage}>
-          🌐 {languageLabel}
-        </button>
       </div>
     </aside>
   );

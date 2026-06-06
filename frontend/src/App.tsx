@@ -12,7 +12,6 @@ const ProfileScreen = React.lazy(() => import('./components/ProfileScreen').then
 const AnalyticsScreen = React.lazy(() => import('./components/AnalyticsScreen').then(m => ({ default: m.AnalyticsScreen })));
 import { BottomNavigation } from './components/BottomNavigation';
 import { DesktopNavigation } from './components/DesktopNavigation';
-import DesktopMobileNotice from './components/DesktopMobileNotice';
 import { translations, Language, isRTL, getStoredLanguage, storeLanguage } from './components/translations';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider, useNotifications } from './context/NotificationContext';
@@ -31,6 +30,8 @@ import { NotificationBell } from './components/notifications/NotificationBell';
 import { EmergencyAlertBanner } from './components/notifications/EmergencyAlertBanner';
 import { NotificationsPage } from './components/notifications/NotificationsPage';
 import { createNotification, updateUserNotificationLocation } from './services/notificationService';
+import { useMediaQuery } from './hooks/useMediaQuery';
+import { Bell, Search, User as UserIcon } from 'lucide-react';
 
 export interface Report {
   id: string;
@@ -85,6 +86,130 @@ export interface User {
 
 export type Screen = 'onboarding' | 'home' | 'report' | 'map' | 'profile' | 'analytics' | 'notifications';
 
+export type LayoutMode = 'mobile' | 'tablet' | 'desktop';
+
+interface AppLayoutProps {
+  currentScreen: Screen;
+  user: User;
+  selectedReport: Report | null;
+  onScreenChange: (screen: Screen) => void;
+  onToggleLanguage: () => void;
+  languageLabel: string;
+  children: React.ReactNode;
+}
+
+const screenLabels: Record<Screen, string> = {
+  onboarding: 'Onboarding',
+  home: 'Home',
+  report: 'Report Issue',
+  map: 'Civic Map',
+  profile: 'Profile',
+  analytics: 'Analytics',
+  notifications: 'Notifications',
+};
+
+function TopBar({
+  currentScreen,
+  onOpenNotifications,
+}: {
+  currentScreen: Screen;
+  onOpenNotifications: () => void;
+}) {
+  return (
+    <header className="fk-topbar">
+      <div className="fk-topbar-breadcrumb">
+        <span>Fix Karachi</span>
+        <span>/</span>
+        <strong>{screenLabels[currentScreen]}</strong>
+      </div>
+      <div className="fk-topbar-search">
+        <Search className="w-4 h-4" />
+        <input placeholder="Search reports, districts, IDs" />
+      </div>
+      <button className="fk-topbar-icon" onClick={onOpenNotifications} aria-label="Notifications">
+        <Bell className="w-4 h-4" />
+      </button>
+      <button className="fk-topbar-avatar" aria-label="Profile">
+        <UserIcon className="w-4 h-4" />
+      </button>
+    </header>
+  );
+}
+
+function DesktopLayout({
+  currentScreen,
+  user,
+  selectedReport,
+  onScreenChange,
+  onToggleLanguage,
+  languageLabel,
+  children,
+}: AppLayoutProps) {
+  return (
+    <div className="fk-app-shell fk-app-shell-desktop">
+      <DesktopNavigation
+        currentScreen={currentScreen}
+        onScreenChange={onScreenChange}
+        onToggleLanguage={onToggleLanguage}
+        languageLabel={languageLabel}
+        isOnline={user.isOnline}
+      />
+      <div className={`fk-app-content ${selectedReport ? 'fk-has-right-panel' : ''}`}>
+        <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function TabletLayout({
+  currentScreen,
+  user,
+  onScreenChange,
+  onToggleLanguage,
+  languageLabel,
+  children,
+}: AppLayoutProps) {
+  return (
+    <div className="fk-app-shell fk-app-shell-tablet">
+      <DesktopNavigation
+        currentScreen={currentScreen}
+        onScreenChange={onScreenChange}
+        onToggleLanguage={onToggleLanguage}
+        languageLabel={languageLabel}
+        isOnline={user.isOnline}
+      />
+      <div className="fk-app-content">
+        <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function MobileLayout({ currentScreen, user, onScreenChange, children }: AppLayoutProps) {
+  return (
+    <div className="fk-app-shell fk-app-shell-mobile">
+      <div className="fk-app-content">
+        <div className="fixed top-3 right-3 z-[9999] fk-mobile-only">
+          <NotificationBell onOpenHistory={() => onScreenChange('notifications')} />
+        </div>
+        {children}
+        <div className="fk-mobile-only">
+          <BottomNavigation
+            currentScreen={currentScreen}
+            onScreenChange={onScreenChange}
+            language={user.language}
+          />
+        </div>
+        <div className="fk-mobile-only">
+          <SOSButton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function normalizeStatus(status: unknown): Report['status'] {
   if (status === 'in_progress') return 'inprogress';
   if (['reported', 'inprogress', 'resolved', 'emergency', 'flagged'].includes(String(status))) {
@@ -138,6 +263,8 @@ function mapApiComplaintToReport(item: any): Report {
 function CitizenApp() {
   const { user: authUser } = useAuth();
   const { notify } = useNotifications();
+  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const isTablet = useMediaQuery('(min-width: 768px)');
   const [isLoading, setIsLoading] = useState(true);
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
   const [user, setUser] = useState<User>({
@@ -661,7 +788,7 @@ function CitizenApp() {
         method: 'POST',
         body: JSON.stringify({ uid: authUser?.uid })
       });
-      toast.success('Report flagged as inappropriate / رپورٹ درج ہو گئی');
+      toast.success('Report flagged as inappropriate / ????? ??? ?? ???');
     } catch (err) {
       console.error('Failed to flag report:', err);
     }
@@ -727,6 +854,9 @@ function CitizenApp() {
     }
   };
 
+  const layoutMode: LayoutMode = isDesktop ? 'desktop' : isTablet ? 'tablet' : 'mobile';
+  const Layout = isDesktop ? DesktopLayout : isTablet ? TabletLayout : MobileLayout;
+
   // Show loading screen first
   if (isLoading) {
     return <LoadingScreen />;
@@ -734,7 +864,7 @@ function CitizenApp() {
 
   if (!hasCompletedOnboarding) {
     return (
-      <div className="min-h-screen bg-background w-full mx-auto relative mobile-container">
+      <div className="min-h-screen bg-background w-full mx-auto relative">
         <OnboardingScreen
           onComplete={handleCompleteOnboarding}
           currentLanguage={user.language}
@@ -746,19 +876,15 @@ function CitizenApp() {
   }
 
   return (
-    <div className="fk-app-shell mobile-container">
-      <DesktopNavigation
-        currentScreen={currentScreen}
-        onScreenChange={setCurrentScreen}
-        onToggleLanguage={() => handleLanguageChange(user.language === 'en' ? 'ur' : 'en')}
-        languageLabel={user.language === 'en' ? 'اردو' : 'EN'}
-      />
-      <div className="fk-app-content">
-        <DesktopMobileNotice />
+    <Layout
+      currentScreen={currentScreen}
+      user={user}
+      selectedReport={selectedReport}
+      onScreenChange={setCurrentScreen}
+      onToggleLanguage={() => handleLanguageChange(user.language === 'en' ? 'ur' : 'en')}
+      languageLabel={user.language === 'en' ? 'اردو' : 'EN'}
+    >
         <EmergencyAlertBanner />
-        <div className="fixed top-3 right-3 z-[9999] fk-mobile-only">
-          <NotificationBell onOpenHistory={() => setCurrentScreen('notifications')} />
-        </div>
         <div className="fk-page">
           <React.Suspense fallback={
             <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
@@ -767,11 +893,12 @@ function CitizenApp() {
             </div>
           }>
             {currentScreen !== 'map' && (
-              <div className="pb-20">
+              <div className="fk-screen-content">
                 {currentScreen === 'home' && (
                   <HomeScreen
                     reports={reports}
                     user={user}
+                    layoutMode={layoutMode}
                     onReportSelect={setSelectedReport}
                     onUpvote={handleUpvote}
                     onVerify={handleVerify}
@@ -788,12 +915,14 @@ function CitizenApp() {
                   <AnalyticsScreen
                     reports={reports}
                     user={user}
+                    layoutMode={layoutMode}
                   />
                 )}
 
                 {currentScreen === 'report' && (
                   <ReportScreen
                     user={user}
+                    layoutMode={layoutMode}
                     onSubmit={handleSubmitReport}
                     onCancel={() => setCurrentScreen('home')}
                   />
@@ -808,6 +937,7 @@ function CitizenApp() {
                   <ProfileScreen
                     reports={reports.filter(r => r.userId === authUser?.uid)}
                     user={user}
+                    layoutMode={layoutMode}
                     onLanguageChange={handleLanguageChange}
                     onToggleOnline={() => setUser(prev => ({ ...prev, isOnline: !prev.isOnline }))}
                     onReportAgain={() => setCurrentScreen('report')}
@@ -820,6 +950,7 @@ function CitizenApp() {
               <LeafletMapScreen
                 reports={reports}
                 user={user}
+                layoutMode={layoutMode}
                 onReportSelect={setSelectedReport}
                 onUpvote={handleUpvote}
                 onVerify={handleVerify}
@@ -828,18 +959,8 @@ function CitizenApp() {
           </React.Suspense>
         </div>
 
-        <div className="fk-mobile-only">
-          <BottomNavigation
-            currentScreen={currentScreen}
-            onScreenChange={setCurrentScreen}
-            language={user.language}
-          />
-        </div>
-
-        <SOSButton />
         <Toaster />
-      </div>
-    </div>
+    </Layout>
   );
 }
 
@@ -876,3 +997,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+

@@ -5,7 +5,7 @@ import { apiFetch } from '../services/api';
 import 'leaflet/dist/leaflet.css';
 import { Heart, Eye, X, MapPin, Layers, Flame, ThumbsUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Report, User } from '../App';
+import { LayoutMode, Report, User } from '../App';
 import { translations } from './translations';
 import { getDistrictCenter, generateRandomCoordinates } from '../utils/mapConfig';
 
@@ -19,6 +19,7 @@ L.Icon.Default.mergeOptions({
 interface LeafletMapScreenProps {
   reports: Report[];
   user: User;
+  layoutMode?: LayoutMode;
   onReportSelect: (report: Report) => void;
   onUpvote: (reportId: string) => void;
   onVerify: (reportId: string) => void;
@@ -36,14 +37,22 @@ const categoryColors: Record<string, string> = {
   safety: '#FF3B3B',
 };
 
-export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote, onVerify }: LeafletMapScreenProps) {
+export function LeafletMapScreen({ reports, user, layoutMode = 'mobile', onReportSelect, onUpvote, onVerify }: LeafletMapScreenProps) {
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [selectedPin, setSelectedPin] = useState<Report | null>(null);
   const [reportCoordinates, setReportCoordinates] = useState<Map<string, [number, number]>>(new Map());
   const [useBackendHeatmap, setUseBackendHeatmap] = useState(false);
   const [backendHeatPoints, setBackendHeatPoints] = useState<[number, number, number][]>([]);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const isDesktop = layoutMode === 'desktop';
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   const markersRef = useRef<L.Marker[]>([]);
   const heatLayerRef = useRef<any>(null);
 
@@ -246,10 +255,30 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote, onVe
   }, [filteredReports, reportCoordinates, useBackendHeatmap, backendHeatPoints]);
 
   return (
-    <div className="flex flex-col relative fk-map-full" style={{ background: '#0A1628', height: '100vh' }}>
+    <div className={`flex flex-col relative fk-map-full ${isDesktop ? 'fk-map-desktop' : ''}`} style={{ background: '#0A1628' }}>
+      {isDesktop && (
+        <aside className="fk-map-list-panel">
+          <div className="fk-map-list-filter">
+            <Layers className="w-4 h-4" />
+            <span>{filteredReports.length} reports</span>
+          </div>
+          <div className="fk-map-list-scroll">
+            {filteredReports.map((report) => (
+              <button
+                key={report.id}
+                className={selectedPin?.id === report.id ? 'active' : ''}
+                onClick={() => setSelectedPin(report)}
+              >
+                <strong>{report.title}</strong>
+                <span>{report.ward} • Severity {report.severity}/10</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
       {/* Filter Chips + Heatmap Toggle */}
       <div
-        className="absolute top-3 left-3 right-3 z-30 flex gap-2 items-center"
+        className={`absolute top-3 left-3 right-3 z-30 flex gap-2 items-center ${isDesktop ? 'fk-map-desktop-filters' : ''}`}
         style={{ scrollbarWidth: 'none', overflowX: 'auto', paddingBottom: 4 }}
       >
         {filterOptions.map((option) => (
@@ -308,101 +337,180 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote, onVe
       {/* Bottom Sheet for Selected Pin */}
       <AnimatePresence>
         {selectedPin && (
-          <motion.div
-            className="fixed bottom-0 left-0 right-0 max-w-sm mx-auto rounded-t-2xl z-[10000]"
-            style={{
-              background: '#0F2040',
-              borderTop: '1px solid rgba(0,212,255,0.15)',
-              boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
-            }}
-            initial={{ y: '100%' }}
-            animate={{ y: 0 }}
-            exit={{ y: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 500 }}
-          >
-            {/* Handle */}
-            <div className="flex justify-center pt-3 pb-2">
-              <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(0,212,255,0.2)' }} />
-            </div>
+          <>
+            {/* Backdrop — mobile & desktop */}
+            {!isDesktop && (
+            <motion.div
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9998 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedPin(null)}
+            />
+            )}
 
-            <div className="px-4 pb-6 space-y-3">
-              {/* Header */}
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <h3 className="truncate" style={{ fontSize: '16px', fontWeight: 600, color: '#F0F4FF' }}>
-                    {selectedPin.title}
-                  </h3>
-                  <p style={{ fontSize: '12px', color: '#4A6080', marginTop: '2px' }}>
-                    {selectedPin.ward} • {formatTimeAgo(selectedPin.timestamp)}
-                  </p>
+            <motion.div
+              className={isMobile ? "fixed bottom-0 left-0 right-0 max-w-sm mx-auto rounded-t-2xl z-[10000]" : "fk-detail-panel z-[10000]"}
+              style={isMobile ? {
+                background: '#0F2040',
+                borderTop: '1px solid rgba(0,212,255,0.15)',
+                boxShadow: '0 -8px 32px rgba(0,0,0,0.4)',
+              } : {
+                background: '#0F2040',
+                overflowY: 'auto',
+              }}
+              initial={isMobile ? { y: '100%' } : { x: '100%', opacity: 0 }}
+              animate={isMobile ? { y: 0 } : { x: 0, opacity: 1 }}
+              exit={isMobile ? { y: '100%' } : { x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+            >
+              {/* Handle (mobile only) */}
+              {isMobile && (
+                <div className="flex justify-center pt-3 pb-2">
+                  <div className="w-10 h-1 rounded-full" style={{ background: 'rgba(0,212,255,0.2)' }} />
                 </div>
-                <button
-                  onClick={() => setSelectedPin(null)}
-                  className="p-1.5 rounded-lg ml-2"
-                  style={{ background: 'rgba(0,212,255,0.08)' }}
-                >
-                  <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
-                </button>
-              </div>
+              )}
 
-              {/* Status */}
-              {(() => {
-                const s = getStatusStyle(selectedPin.status);
-                return (
-                  <span className="inline-block px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: s.bg, color: s.color }}>
-                    {s.text}
+              {/* Close Button & Header info for Desktop */}
+              {!isMobile && (
+                <div
+                  style={{
+                    position: 'sticky', top: 0,
+                    padding: '16px 20px',
+                    background: 'rgba(15,32,64,0.95)',
+                    borderBottom: '1px solid rgba(0,212,255,0.08)',
+                    backdropFilter: 'blur(12px)',
+                    zIndex: 10,
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 700, color: '#00D4FF', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                    📍 {t.reportLocation}
                   </span>
-                );
-              })()}
+                  <button
+                    onClick={() => setSelectedPin(null)}
+                    style={{ padding: 8, borderRadius: 10, background: 'rgba(0,212,255,0.08)', cursor: 'pointer' }}
+                  >
+                    <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
+                  </button>
+                </div>
+              )}
 
-              {/* Description */}
-              <p className="line-clamp-2" style={{ fontSize: '13px', color: '#8BA3C7' }}>
-                {selectedPin.description}
-              </p>
+              <div style={isMobile ? { padding: '16px' } : { padding: '24px' }} className="space-y-4">
+                {/* Header */}
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <h3 style={{ fontSize: '18px', fontWeight: 700, color: '#F0F4FF', lineHeight: 1.3 }}>
+                      {selectedPin.title}
+                    </h3>
+                    <p style={{ fontSize: '12.5px', color: '#4A6080', marginTop: '4px' }}>
+                      {selectedPin.ward} • {formatTimeAgo(selectedPin.timestamp)}
+                    </p>
+                  </div>
+                  {isMobile && (
+                    <button
+                      onClick={() => setSelectedPin(null)}
+                      className="p-1.5 rounded-lg ml-2"
+                      style={{ background: 'rgba(0,212,255,0.08)' }}
+                    >
+                      <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
+                    </button>
+                  )}
+                </div>
 
-              {/* Actions */}
-              <div className="flex gap-2">
-                <button
-                  className="flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium"
-                  style={{
-                    background: 'rgba(0,212,255,0.08)',
-                    color: '#00D4FF',
-                    border: '1px solid rgba(0,212,255,0.15)',
-                  }}
-                  onClick={() => { onReportSelect(selectedPin); setSelectedPin(null); }}
-                >
-                  <Eye className="w-4 h-4" />
-                  {t.viewDetails}
-                </button>
-                <motion.button
-                  className="py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm"
-                  style={{
-                    background: selectedPin.hasUserUpvoted ? 'rgba(0,212,255,0.15)' : 'rgba(0,212,255,0.05)',
-                    color: selectedPin.hasUserUpvoted ? '#00D4FF' : '#4A6080',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                  }}
-                  onClick={() => onUpvote(selectedPin.id)}
-                  whileTap={{ scale: 1.05 }}
-                >
-                  <Heart className="w-4 h-4" fill={selectedPin.hasUserUpvoted ? '#00D4FF' : 'none'} />
-                  <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{selectedPin.upvotes}</span>
-                </motion.button>
-                <motion.button
-                  className="py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm"
-                  style={{
-                    background: selectedPin.hasUserVerified ? 'rgba(0,200,150,0.15)' : 'rgba(0,200,150,0.05)',
-                    color: selectedPin.hasUserVerified ? '#00C896' : '#4A6080',
-                    border: '1px solid rgba(0,200,150,0.1)',
-                  }}
-                  onClick={() => onVerify(selectedPin.id)}
-                  whileTap={{ scale: 1.05 }}
-                >
-                  <ThumbsUp className="w-4 h-4" fill={selectedPin.hasUserVerified ? '#00C896' : 'none'} />
-                  <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{selectedPin.verify_count || 0}</span>
-                </motion.button>
+                {/* Status badge row */}
+                <div className="flex gap-2 items-center flex-wrap">
+                  {(() => {
+                    const s = getStatusStyle(selectedPin.status);
+                    return (
+                      <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold" style={{ background: s.bg, color: s.color }}>
+                        {s.text}
+                      </span>
+                    );
+                  })()}
+                  {selectedPin.priority === 'high' && (
+                    <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold" style={{ background: 'rgba(255,59,59,0.15)', color: '#FF3B3B' }}>
+                      {t.highPriority}
+                    </span>
+                  )}
+                </div>
+
+                {/* Image */}
+                {selectedPin.imageUrl && (
+                  <div
+                    style={{
+                      width: '100%',
+                      aspectRatio: '16/9',
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      border: '1px solid rgba(0, 212, 255, 0.1)',
+                      background: 'rgba(0, 212, 255, 0.02)',
+                    }}
+                  >
+                    <img
+                      src={selectedPin.imageUrl}
+                      alt={selectedPin.title}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Description */}
+                <p style={{ fontSize: '14px', color: '#C8D8F0', lineHeight: 1.6 }}>
+                  {selectedPin.description}
+                </p>
+
+                {/* Actions */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    className="flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 text-sm font-medium"
+                    style={{
+                      background: 'rgba(0,212,255,0.08)',
+                      color: '#00D4FF',
+                      border: '1px solid rgba(0,212,255,0.15)',
+                    }}
+                    onClick={() => { onReportSelect(selectedPin); setSelectedPin(null); }}
+                  >
+                    <Eye className="w-4 h-4" />
+                    {t.viewDetails}
+                  </button>
+                  <motion.button
+                    className="py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm"
+                    style={{
+                      background: selectedPin.hasUserUpvoted ? 'rgba(0,212,255,0.15)' : 'rgba(0,212,255,0.05)',
+                      color: selectedPin.hasUserUpvoted ? '#00D4FF' : '#4A6080',
+                      border: '1px solid rgba(0,212,255,0.1)',
+                    }}
+                    onClick={() => onUpvote(selectedPin.id)}
+                    whileTap={{ scale: 1.05 }}
+                  >
+                    <Heart className="w-4 h-4" fill={selectedPin.hasUserUpvoted ? '#00D4FF' : 'none'} />
+                    <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{selectedPin.upvotes}</span>
+                  </motion.button>
+                  <motion.button
+                    className="py-2.5 px-4 rounded-xl flex items-center gap-2 text-sm"
+                    style={{
+                      background: selectedPin.hasUserVerified ? 'rgba(0,200,150,0.15)' : 'rgba(0,200,150,0.05)',
+                      color: selectedPin.hasUserVerified ? '#00C896' : '#4A6080',
+                      border: '1px solid rgba(0,200,150,0.1)',
+                    }}
+                    onClick={() => onVerify(selectedPin.id)}
+                    whileTap={{ scale: 1.05 }}
+                  >
+                    <ThumbsUp className="w-4 h-4" fill={selectedPin.hasUserVerified ? '#00C896' : 'none'} />
+                    <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 600 }}>{selectedPin.verify_count || 0}</span>
+                  </motion.button>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>

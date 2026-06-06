@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Camera, MapPin, X, Check, ChevronRight, ChevronLeft, Zap, Trash2, Lightbulb, Droplets, AlertTriangle, Sparkles, Award, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Report, User } from '../App';
+import { LayoutMode, Report, User } from '../App';
 import { translations } from './translations';
 import confetti from 'canvas-confetti';
 import { useRateLimit } from '../hooks/useRateLimit';
@@ -47,6 +47,7 @@ function getNearestDistrict(lat: number, lng: number): string {
 
 interface ReportScreenProps {
   user: User;
+  layoutMode?: LayoutMode;
   onSubmit: (report: Omit<Report, 'id' | 'timestamp' | 'upvotes' | 'comments' | 'distance' | 'hasUserUpvoted'>) => void;
   onCancel: () => void;
 }
@@ -60,7 +61,7 @@ const categories = [
   { value: 'safety', color: '#FF3B3B', LucideIcon: AlertTriangle },
 ];
 
-export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
+export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }: ReportScreenProps) {
   const { user: authUser } = useAuth();
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState('');
@@ -215,11 +216,11 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
   }
 
   return (
-    <div className="min-h-screen pb-12" style={{ background: '#0A1628' }}>
+    <div className="pb-12" style={{ background: 'transparent' }}>
       {/* Header */}
       <div
         className="sticky top-0 z-40 px-6 py-4"
-        style={{ background: '#0A1628', borderBottom: '1px solid rgba(0,212,255,0.08)' }}
+        style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
       >
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">

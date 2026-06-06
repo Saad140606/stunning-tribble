@@ -61,12 +61,9 @@ export const addMobileWebAppMeta = (): void => {
 };
 
 export const initializeMobileFirst = (): void => {
-  forceMobileViewport();
-  addMobileWebAppMeta();
-  
-  // Add desktop mobile simulation class if on desktop
-  if (isDesktopDevice()) {
-    document.body.classList.add('desktop-mobile-simulation');
+  if (isMobileDevice()) {
+    forceMobileViewport();
+    addMobileWebAppMeta();
   }
   
   // Disable zoom on mobile

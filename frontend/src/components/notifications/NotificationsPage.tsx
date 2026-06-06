@@ -34,8 +34,8 @@ export function NotificationsPage() {
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
-    <div className="min-h-screen pb-28" style={{ background: '#0A1628' }}>
-      <div className="sticky top-0 z-40 px-4 py-4" style={{ background: '#0A1628', borderBottom: '1px solid rgba(0,212,255,0.08)' }}>
+    <div className="pb-12" style={{ background: 'transparent' }}>
+      <div className="sticky top-0 z-40 px-4 py-4" style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <h1 className="flex items-center gap-2" style={{ color: '#F0F4FF', fontSize: 20, fontWeight: 900 }}>

@@ -6,7 +6,7 @@ import {
   ArrowUpRight, BarChart2, Flame, ThumbsUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Report, Comment, User } from '../App';
+import { LayoutMode, Report, Comment, User } from '../App';
 import { translations, Language } from './translations';
 import { FloatingActionButton } from './FloatingActionButton';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +25,7 @@ interface HomeScreenProps {
   onCloseModal: () => void;
   onReportAgain: () => void;
   onLanguageChange: (language: Language) => void;
+  layoutMode?: LayoutMode;
   isLoading?: boolean;
 }
 
@@ -61,6 +62,7 @@ export function HomeScreen({
   onCloseModal,
   onReportAgain,
   onLanguageChange,
+  layoutMode = 'mobile',
   isLoading = false,
 }: HomeScreenProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -149,14 +151,145 @@ export function HomeScreen({
     upvotes: '❤️ Most Voted',
   };
 
+  if (layoutMode === 'desktop') {
+    const topDistricts = Object.entries(
+      reports.reduce<Record<string, number>>((acc, report) => {
+        const key = report.ward || report.district;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {})
+    ).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+    return (
+      <div className="fk-desktop-home">
+        <div className="fk-desktop-kpi-grid">
+          {[
+            { value: totalReported, label: 'Reports', color: '#00D4FF', icon: Activity },
+            { value: totalResolved, label: 'Resolved', color: '#00C896', icon: CheckCircle2 },
+            { value: todayCount, label: 'Impact', color: '#FFB800', icon: TrendingUp },
+          ].map((stat) => {
+            const Icon = stat.icon;
+            return (
+              <div key={stat.label} className="fk-desktop-kpi-card" style={{ '--kpi-color': stat.color } as React.CSSProperties}>
+                <Icon className="w-5 h-5" style={{ color: stat.color }} />
+                <strong style={{ color: stat.color }}>{stat.value}</strong>
+                <span>{stat.label}</span>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="fk-desktop-home-grid">
+          <section className="fk-desktop-table-card">
+            <div className="fk-table-header">
+              <h2>Recent Reports</h2>
+              <button onClick={onReportAgain}><Plus className="w-4 h-4" /> Report</button>
+            </div>
+            <table className="fk-data-table">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Category</th>
+                  <th>District</th>
+                  <th>Severity</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredReports.slice(0, 10).map((report) => {
+                  const status = getStatusStyle(report.status);
+                  return (
+                    <tr key={report.id} onClick={() => onReportSelect(report)}>
+                      <td className="font-mono">#{report.id}</td>
+                      <td>{report.aiTag}</td>
+                      <td>{report.ward}</td>
+                      <td>{report.severity}/10</td>
+                      <td><span style={{ background: status.bg, color: status.color }}>{status.text}</span></td>
+                      <td>{formatTimeAgo(report.timestamp)}</td>
+                      <td>
+                        <button onClick={(event) => { event.stopPropagation(); onUpvote(report.id); }}>
+                          <Heart className="w-4 h-4" /> {report.upvotes}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </section>
+
+          <aside className="fk-desktop-map-card">
+            <h2>Live Map</h2>
+            <div className="fk-mini-map">
+              {filteredReports.slice(0, 12).map((report, index) => (
+                <button
+                  key={report.id}
+                  aria-label={report.title}
+                  onClick={() => onReportSelect(report)}
+                  style={{
+                    left: `${16 + ((index * 23) % 70)}%`,
+                    top: `${18 + ((index * 31) % 66)}%`,
+                    background: categoryColors[report.type] || '#00D4FF',
+                  }}
+                />
+              ))}
+            </div>
+            <h3>Top Districts</h3>
+            <div className="fk-top-districts">
+              {topDistricts.map(([district, count]) => (
+                <div key={district}>
+                  <span>{district}</span>
+                  <strong>{count}</strong>
+                </div>
+              ))}
+            </div>
+          </aside>
+        </div>
+
+        <AnimatePresence>
+          {selectedReport && (
+            <motion.aside
+              className="fk-desktop-right-panel"
+              initial={{ x: 320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 320, opacity: 0 }}
+              transition={{ type: 'spring', damping: 28, stiffness: 360 }}
+            >
+              <div className="fk-panel-header">
+                <h2>{selectedReport.title}</h2>
+                <button onClick={onCloseModal}><X className="w-4 h-4" /></button>
+              </div>
+              <div className="fk-panel-body">
+                <p>{selectedReport.description}</p>
+                <div className="fk-panel-meta">
+                  <span>{selectedReport.ward}</span>
+                  <span>{formatTimeAgo(selectedReport.timestamp)}</span>
+                  <span>Severity {selectedReport.severity}/10</span>
+                </div>
+                {selectedReport.imageUrl && <img src={selectedReport.imageUrl} alt={selectedReport.title} />}
+                <div className="fk-panel-actions">
+                  <button onClick={() => onUpvote(selectedReport.id)}><Heart className="w-4 h-4" /> {selectedReport.upvotes}</button>
+                  <button onClick={() => onVerify(selectedReport.id)}><ThumbsUp className="w-4 h-4" /> {selectedReport.verify_count || 0}</button>
+                  <button onClick={() => handleFlag(selectedReport.id)}><Flag className="w-4 h-4" /> Flag</button>
+                </div>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </div>
+    );
+  }
+
   return (
-    <div style={{ background: '#0A1628', minHeight: '100vh' }}>
+    <div style={{ background: 'transparent' }}>
       {/* ── Desktop/Mobile Header ── */}
       <div
         className="sticky top-0 z-40"
-        style={{ background: 'rgba(10,22,40,0.95)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(12px)' }}
+        style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
       >
-        <div style={{ padding: '16px 20px' }}>
+        <div className="fk-home-header" style={{ padding: '16px 20px' }}>
           {/* Top row — mobile brand + actions */}
           <div className="flex items-center justify-between mb-4 fk-mobile-only">
             <div className="flex items-center gap-3">
@@ -329,7 +462,7 @@ export function HomeScreen({
       </div>
 
       {/* ── Reports Feed ── */}
-      <div style={{ padding: '16px 20px 100px' }}>
+      <div className="fk-home-feed" style={{ padding: '16px 20px 48px' }}>
         {/* Section header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <h2 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 700, fontSize: 15, color: '#F0F4FF' }}>
@@ -636,6 +769,34 @@ export function HomeScreen({
                     </p>
                   </div>
                 </div>
+
+                {/* Image */}
+                {selectedReport.imageUrl && (
+                  <div
+                    style={{
+                      width: '100%',
+                      aspectRatio: '16/9',
+                      borderRadius: 12,
+                      overflow: 'hidden',
+                      marginBottom: 16,
+                      border: '1px solid rgba(0, 212, 255, 0.1)',
+                      background: 'rgba(0, 212, 255, 0.02)',
+                    }}
+                  >
+                    <img
+                      src={selectedReport.imageUrl}
+                      alt={selectedReport.title}
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                      }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
 
                 {/* Description */}
                 <p style={{ fontSize: 14, color: '#C8D8F0', lineHeight: 1.65, marginBottom: 16 }}>

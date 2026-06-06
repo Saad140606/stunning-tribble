@@ -2,7 +2,7 @@ import React from 'react';
 import { Settings, Wifi, WifiOff, User, MapPin, LogOut, Clock, Heart, Award, Shield } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
-import { Report, User as UserType } from '../App';
+import { LayoutMode, Report, User as UserType } from '../App';
 import { translations, Language } from './translations';
 import { useAuth } from '../context/AuthContext';
 
@@ -12,6 +12,7 @@ interface ProfileScreenProps {
   onLanguageChange: (language: Language) => void;
   onToggleOnline: () => void;
   onReportAgain: () => void;
+  layoutMode?: LayoutMode;
 }
 
 const pageVariants = {
@@ -32,7 +33,8 @@ export function ProfileScreen({
   user,
   onLanguageChange,
   onToggleOnline,
-  onReportAgain
+  onReportAgain,
+  layoutMode = 'mobile',
 }: ProfileScreenProps) {
   const t = translations[user.language];
   const { isAdmin, signOut, profile } = useAuth();
@@ -93,11 +95,11 @@ export function ProfileScreen({
     : 'KC';
 
   return (
-    <motion.div className="min-h-screen pb-12" style={{ background: '#0A1628' }} variants={pageVariants} initial="hidden" animate="show">
+    <motion.div className="pb-12" style={{ background: 'transparent' }} variants={pageVariants} initial="hidden" animate="show">
       {/* Header */}
       <div
         className="sticky top-0 z-40 px-6 py-4"
-        style={{ background: '#0A1628', borderBottom: '1px solid rgba(0,212,255,0.08)' }}
+        style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
       >
         <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: '22px', color: '#F0F4FF' }}>
           {t.profile}

@@ -74,7 +74,7 @@ export function TransparencyScreen() {
   };
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A1628', color: '#F0F4FF' }}>
+    <div className="min-h-screen" style={{ background: 'linear-gradient(160deg, #081223 0%, #0A1628 45%, #0D1F3C 100%)', color: '#F0F4FF' }}>
       <header className="p-5" style={{ borderBottom: '1px solid rgba(0,212,255,0.1)' }}>
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
