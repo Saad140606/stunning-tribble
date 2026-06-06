@@ -97,6 +97,19 @@
     },
     build: {
       target: 'esnext',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules')) {
+              if (id.includes('leaflet')) return 'leaflet-vendor';
+              if (id.includes('recharts') || id.includes('d3')) return 'charts-vendor';
+              if (id.includes('firebase')) return 'firebase-vendor';
+              if (id.includes('motion') || id.includes('framer-motion')) return 'animations-vendor';
+              return 'vendor';
+            }
+          }
+        }
+      }
     },
     server: {
       port: 3000,

@@ -14,21 +14,13 @@ interface PublicReport {
   emergencyWithinSla?: boolean;
 }
 
-const demoReports: PublicReport[] = [
-  { id: '1', category: 'Pothole', district: 'Gulshan-e-Iqbal', department: 'KMC Roads', status: 'resolved', createdAt: new Date(Date.now() - 4 * 86400000), resolvedAt: new Date(Date.now() - 86400000) },
-  { id: '2', category: 'Water leak', district: 'Clifton', department: 'KMC Water (KWSB)', status: 'pending', createdAt: new Date(Date.now() - 2 * 86400000) },
-  { id: '3', category: 'Street light', district: 'Nazimabad', department: 'KESC', status: 'resolved', createdAt: new Date(Date.now() - 5 * 86400000), resolvedAt: new Date(Date.now() - 2 * 86400000) },
-  { id: '4', category: 'Traffic signal', district: 'Saddar', department: 'Traffic Police', status: 'inprogress', createdAt: new Date(Date.now() - 86400000) },
-  { id: '5', category: 'Flooding', district: 'Korangi', department: 'KMC Water (KWSB)', status: 'resolved', createdAt: new Date(Date.now() - 600000), resolvedAt: new Date(Date.now() - 120000), emergencyWithinSla: true },
-];
-
 const districts = ['Saddar', 'Gulshan-e-Iqbal', 'Clifton', 'Korangi', 'Malir', 'Lyari', 'Orangi', 'Nazimabad', 'DHA', 'North Karachi'];
 const departments = ['KMC Roads', 'KMC Water (KWSB)', 'KESC', 'Traffic Police'];
 
 const asDate = (value: unknown) => value instanceof Date ? value : value ? new Date(String(value)) : new Date();
 
 export function TransparencyScreen() {
-  const [reports, setReports] = useState<PublicReport[]>(demoReports);
+  const [reports, setReports] = useState<PublicReport[]>([]);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
@@ -49,7 +41,7 @@ export function TransparencyScreen() {
           resolvedAt: item.status === 'resolved' ? asDate(item.updatedAt) : undefined,
           emergencyWithinSla: item.priority === 10 && item.status === 'resolved',
         }));
-        if (mapped.length) setReports(mapped);
+        setReports(mapped);
       } catch (err) {
         console.error('Failed to load public complaints:', err);
       }

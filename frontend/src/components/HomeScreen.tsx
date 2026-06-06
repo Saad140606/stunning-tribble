@@ -18,6 +18,7 @@ interface HomeScreenProps {
   user: User;
   onReportSelect: (report: Report) => void;
   onUpvote: (reportId: string) => void;
+  onFlag: (reportId: string) => void;
   onAddComment: (reportId: string, comment: string) => void;
   selectedReport: Report | null;
   onCloseModal: () => void;
@@ -52,6 +53,7 @@ export function HomeScreen({
   user,
   onReportSelect,
   onUpvote,
+  onFlag,
   onAddComment,
   selectedReport,
   onCloseModal,
@@ -127,7 +129,7 @@ export function HomeScreen({
   };
 
   const handleFlag = async (reportId: string) => {
-    await flagReportAsSpam(reportId, authUser?.uid ?? 'demo-user');
+    onFlag(reportId);
     onCloseModal();
   };
 
@@ -638,35 +640,97 @@ export function HomeScreen({
                   <p style={{ fontSize: 11, color: '#4A6080', marginTop: 6 }}>{selectedReport.aiTag}</p>
                 </div>
 
-                {/* Actions */}
-                <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-                  <motion.button
-                    onClick={() => onUpvote(selectedReport.id)}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      padding: '12px', borderRadius: 14, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      background: selectedReport.hasUserUpvoted ? 'rgba(0,212,255,0.15)' : 'rgba(0,212,255,0.06)',
-                      color: selectedReport.hasUserUpvoted ? '#00D4FF' : '#8BA3C7',
-                      border: `1px solid ${selectedReport.hasUserUpvoted ? 'rgba(0,212,255,0.3)' : 'rgba(0,212,255,0.1)'}`,
-                    }}
-                    whileTap={{ scale: 1.04 }}
-                  >
-                    <Heart className="w-4 h-4" fill={selectedReport.hasUserUpvoted ? '#00D4FF' : 'none'} />
-                    {selectedReport.upvotes} {t.upvote}
-                  </motion.button>
-                  <button
-                    onClick={() => handleFlag(selectedReport.id)}
-                    style={{
-                      flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      padding: '12px', borderRadius: 14, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                      background: 'rgba(139,92,246,0.06)',
-                      color: '#8BA3C7',
-                      border: '1px solid rgba(139,92,246,0.1)',
-                    }}
-                  >
-                    <Flag className="w-4 h-4" />
-                    Flag
-                  </button>
+                {/* Community Verification System */}
+                <div
+                  style={{
+                    padding: '16px',
+                    borderRadius: 16,
+                    marginBottom: 20,
+                    background: selectedReport.flag_count && selectedReport.flag_count >= 3 ? 'rgba(255,59,59,0.06)' : 'rgba(0,200,150,0.04)',
+                    border: `1px solid ${selectedReport.flag_count && selectedReport.flag_count >= 3 ? 'rgba(255,59,59,0.15)' : 'rgba(0,200,150,0.12)'}`,
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#F0F4FF', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      🛡️ {user.language === 'ur' ? 'کمیونٹی تصدیق' : 'Community Validation'}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        padding: '3px 8px',
+                        borderRadius: 6,
+                        background: selectedReport.flag_count && selectedReport.flag_count >= 3 ? 'rgba(255,59,59,0.15)' : 'rgba(0,200,150,0.15)',
+                        color: selectedReport.flag_count && selectedReport.flag_count >= 3 ? '#FF3B3B' : '#00C896'
+                      }}
+                    >
+                      {selectedReport.flag_count && selectedReport.flag_count >= 3
+                        ? (user.language === 'ur' ? 'مشکوک / غلط رپورٹ' : 'Flagged/Suspicious')
+                        : selectedReport.upvotes >= 5
+                          ? (user.language === 'ur' ? 'کمیونٹی سے تصدیق شدہ ✓' : 'Community Verified ✓')
+                          : (user.language === 'ur' ? 'تصدیق کا انتظار' : 'Awaiting Validation')}
+                    </span>
+                  </div>
+                  
+                  <p style={{ fontSize: 12, color: '#8BA3C7', lineHeight: 1.4, marginBottom: 12 }}>
+                    {selectedReport.flag_count && selectedReport.flag_count >= 3
+                      ? (user.language === 'ur' 
+                          ? 'انتباہ: شہریوں کی جانب سے اس مسئلے کو غلط یا نامناسب قرار دیا گیا ہے۔' 
+                          : 'Warning: This issue has been flagged multiple times by citizens as inappropriate or fake.')
+                      : (user.language === 'ur'
+                          ? 'شہریوں کی مدد کریں۔ اگر مسئلہ واقعی موجود ہے تو ووٹ دیں، یا غلط ہونے کی صورت میں رپورٹ کریں۔'
+                          : 'Help municipal workers prioritize this issue. Verify if it is real, or flag it if it is spam or incorrect.')}
+                  </p>
+                  
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {/* Verify (Upvote) Button */}
+                    <motion.button
+                      onClick={() => onUpvote(selectedReport.id)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        padding: '11px',
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: selectedReport.hasUserUpvoted ? 'rgba(0,200,150,0.15)' : 'rgba(0,212,255,0.06)',
+                        color: selectedReport.hasUserUpvoted ? '#00C896' : '#8BA3C7',
+                        border: `1px solid ${selectedReport.hasUserUpvoted ? 'rgba(0,200,150,0.3)' : 'rgba(0,212,255,0.12)'}`,
+                      }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" style={{ color: selectedReport.hasUserUpvoted ? '#00C896' : '#8BA3C7' }} />
+                      {user.language === 'ur' ? 'تصدیق' : 'Verify'} ({selectedReport.upvotes})
+                    </motion.button>
+                    
+                    {/* Flag/Spam Button */}
+                    <motion.button
+                      onClick={() => handleFlag(selectedReport.id)}
+                      style={{
+                        flex: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        padding: '11px',
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        background: 'rgba(255,59,59,0.06)',
+                        color: '#FF3B3B',
+                        border: '1px solid rgba(255,59,59,0.15)',
+                      }}
+                      whileTap={{ scale: 0.97 }}
+                    >
+                      <Flag className="w-3.5 h-3.5" style={{ color: '#FF3B3B' }} />
+                      {user.language === 'ur' ? 'غلط رپورٹ' : 'Flag Spam'} ({selectedReport.flag_count || 0})
+                    </motion.button>
+                  </div>
                 </div>
 
                 {/* Comments */}

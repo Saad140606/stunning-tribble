@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { db } from '../config/db';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
+import { analyzeIssue } from '../services/ai.service';
 
 const DAILY_LIMIT = 5;
 
@@ -500,5 +501,16 @@ export const addComment = async (req: AuthenticatedRequest, res: Response) => {
   } catch (err) {
     console.error('Add comment error:', err);
     return res.status(500).json({ error: 'Failed to add comment / تبصرہ شامل کرنے میں ناکامی' });
+  }
+};
+
+export const aiAnalyze = async (req: Request, res: Response) => {
+  const { description, imageBase64 } = req.body;
+  try {
+    const analysis = await analyzeIssue(description, imageBase64);
+    return res.status(200).json({ analysis });
+  } catch (err) {
+    console.error('AI analyze controller error:', err);
+    return res.status(500).json({ error: 'AI analysis failed / اے آئی تجزیہ ناکام رہا' });
   }
 };

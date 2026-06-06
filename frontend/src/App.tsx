@@ -5,10 +5,11 @@ import { toast } from 'sonner';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { HomeScreen } from './components/HomeScreen';
-import { ReportScreen } from './components/ReportScreen';
-import { LeafletMapScreen } from './components/LeafletMapScreen';
-import { ProfileScreen } from './components/ProfileScreen';
-import { AnalyticsScreen } from './components/AnalyticsScreen';
+
+const ReportScreen = React.lazy(() => import('./components/ReportScreen').then(m => ({ default: m.ReportScreen })));
+const LeafletMapScreen = React.lazy(() => import('./components/LeafletMapScreen').then(m => ({ default: m.LeafletMapScreen })));
+const ProfileScreen = React.lazy(() => import('./components/ProfileScreen').then(m => ({ default: m.ProfileScreen })));
+const AnalyticsScreen = React.lazy(() => import('./components/AnalyticsScreen').then(m => ({ default: m.AnalyticsScreen })));
 import { BottomNavigation } from './components/BottomNavigation';
 import { DesktopNavigation } from './components/DesktopNavigation';
 import DesktopMobileNotice from './components/DesktopMobileNotice';
@@ -56,6 +57,7 @@ export interface Report {
   priority?: 'high' | 'medium' | 'low';
   isDuplicate?: boolean;
   blurhash?: string;
+  flag_count?: number;
 }
 
 export interface MediaItem {
@@ -125,6 +127,7 @@ function mapApiComplaintToReport(item: any): Report {
     priority: normalizePriority(item.priority, severity),
     isDuplicate: Boolean(item.isDuplicate),
     blurhash: item.blurhash,
+    flag_count: Number(item.flagCount ?? item.flag_count ?? 0),
   };
 }
 
@@ -621,6 +624,24 @@ function CitizenApp() {
     } catch { /* optimistic already applied */ }
   };
 
+  const handleFlag = async (reportId: string) => {
+    // Optimistic update
+    setReports(prev => prev.map(r => r.id === reportId ? {
+      ...r,
+      flag_count: (r.flag_count ?? 0) + 1
+    } : r));
+    
+    try {
+      await apiFetch(`/complaints/${reportId}/flag`, {
+        method: 'POST',
+        body: JSON.stringify({ uid: authUser?.uid })
+      });
+      toast.success('Report flagged as inappropriate / رپورٹ درج ہو گئی');
+    } catch (err) {
+      console.error('Failed to flag report:', err);
+    }
+  };
+
   const handleSubmitReport = async (report: Omit<Report, 'id' | 'timestamp' | 'upvotes' | 'comments' | 'distance' | 'hasUserUpvoted'>) => {
     const duplicate = findLocalDuplicate(reports, { type: report.type, coordinates: report.coordinates }, 75);
     const payload = {
@@ -645,6 +666,11 @@ function CitizenApp() {
         method: 'POST',
         body: JSON.stringify(payload),
       });
+      if (response.status === 429) {
+        const data = await response.json();
+        toast.error(data.error || 'Daily report limit reached');
+        return;
+      }
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Report submission failed');
       const savedReport = mapApiComplaintToReport(data.complaint);
@@ -709,62 +735,70 @@ function CitizenApp() {
           <NotificationBell onOpenHistory={() => setCurrentScreen('notifications')} />
         </div>
         <div className="fk-page">
-          {currentScreen !== 'map' && (
-            <div className="pb-20">
-              {currentScreen === 'home' && (
-                <HomeScreen
-                  reports={reports}
-                  user={user}
-                  onReportSelect={setSelectedReport}
-                  onUpvote={handleUpvote}
-                  onAddComment={handleAddComment}
-                  selectedReport={selectedReport}
-                  onCloseModal={() => setSelectedReport(null)}
-                  onReportAgain={() => setCurrentScreen('report')}
-                  onLanguageChange={handleLanguageChange}
-                />
-              )}
-
-              {currentScreen === 'analytics' && (
-                <AnalyticsScreen
-                  reports={reports}
-                  user={user}
-                />
-              )}
-
-              {currentScreen === 'report' && (
-                <ReportScreen
-                  user={user}
-                  onSubmit={handleSubmitReport}
-                  onCancel={() => setCurrentScreen('home')}
-                />
-              )}
-
-              {currentScreen === 'notifications' && (
-                <NotificationsPage />
-              )}
-
-              {/* FIX 1D: Filter by authUser?.uid (not hardcoded 'current-user') */}
-              {currentScreen === 'profile' && (
-                <ProfileScreen
-                  reports={reports.filter(r => r.userId === authUser?.uid)}
-                  user={user}
-                  onLanguageChange={handleLanguageChange}
-                  onToggleOnline={() => setUser(prev => ({ ...prev, isOnline: !prev.isOnline }))}
-                  onReportAgain={() => setCurrentScreen('report')}
-                />
-              )}
+          <React.Suspense fallback={
+            <div className="min-h-[50vh] flex flex-col items-center justify-center p-6 text-center">
+              <div className="w-10 h-10 border-4 border-[#00D4FF] border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs text-[#4A6080] font-semibold" style={{ fontFamily: "'Plus Jakarta Sans'" }}>Loading civic screen...</p>
             </div>
-          )}
+          }>
+            {currentScreen !== 'map' && (
+              <div className="pb-20">
+                {currentScreen === 'home' && (
+                  <HomeScreen
+                    reports={reports}
+                    user={user}
+                    onReportSelect={setSelectedReport}
+                    onUpvote={handleUpvote}
+                    onFlag={handleFlag}
+                    onAddComment={handleAddComment}
+                    selectedReport={selectedReport}
+                    onCloseModal={() => setSelectedReport(null)}
+                    onReportAgain={() => setCurrentScreen('report')}
+                    onLanguageChange={handleLanguageChange}
+                  />
+                )}
 
-          {currentScreen === 'map' && (
-            <LeafletMapScreen
-              reports={reports}
-              user={user}
-              onReportSelect={setSelectedReport}
-              onUpvote={handleUpvote}
-            />
-          )}
+                {currentScreen === 'analytics' && (
+                  <AnalyticsScreen
+                    reports={reports}
+                    user={user}
+                  />
+                )}
+
+                {currentScreen === 'report' && (
+                  <ReportScreen
+                    user={user}
+                    onSubmit={handleSubmitReport}
+                    onCancel={() => setCurrentScreen('home')}
+                  />
+                )}
+
+                {currentScreen === 'notifications' && (
+                  <NotificationsPage />
+                )}
+
+                {/* FIX 1D: Filter by authUser?.uid (not hardcoded 'current-user') */}
+                {currentScreen === 'profile' && (
+                  <ProfileScreen
+                    reports={reports.filter(r => r.userId === authUser?.uid)}
+                    user={user}
+                    onLanguageChange={handleLanguageChange}
+                    onToggleOnline={() => setUser(prev => ({ ...prev, isOnline: !prev.isOnline }))}
+                    onReportAgain={() => setCurrentScreen('report')}
+                  />
+                )}
+              </div>
+            )}
+
+            {currentScreen === 'map' && (
+              <LeafletMapScreen
+                reports={reports}
+                user={user}
+                onReportSelect={setSelectedReport}
+                onUpvote={handleUpvote}
+              />
+            )}
+          </React.Suspense>
         </div>
 
         <div className="fk-mobile-only">
