@@ -3,35 +3,19 @@
 /* Import custom map styles */
 @import './styles/map.css';
 
-/* Mobile-first design with desktop simulation */
+/* Responsive app shell */
 .mobile-container {
   position: relative;
 }
 
-/* Desktop mobile simulation */
 @media (min-width: 768px) {
   .mobile-container {
-    max-width: 375px !important;
-    width: 375px !important;
-    margin: 0 auto;
-  }
-  
-  /* Add mobile device notch/home indicator simulation */
-  .mobile-container::after {
-    content: '';
-    position: fixed;
-    bottom: 4px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 134px;
-    height: 5px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
-    z-index: 9999;
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
   }
 }
 
-/* Ensure mobile devices use full width */
 @media (max-width: 767px) {
   .mobile-container {
     width: 100% !important;

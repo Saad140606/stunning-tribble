@@ -10,8 +10,13 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function isAdmin() {
+      return signedIn() && userDoc().data.role in ['admin', 'authority'];
+    }
+
     match /users/{uid} {
       allow read: if signedIn() && request.auth.uid == uid;
+      allow list: if isAdmin();
       allow create, update: if signedIn() && request.auth.uid == uid;
     }
 
@@ -21,18 +26,62 @@ service cloud.firestore {
         && request.resource.data.submittedBy == request.auth.uid
         && (!('todayReportCount' in userDoc().data) || userDoc().data.todayReportCount <= 5);
       allow update: if signedIn()
-        && (userDoc().data.role in ['admin', 'authority']
+        && (isAdmin()
           || request.auth.uid == resource.data.submittedBy);
 
       match /history/{historyId} {
         allow read: if signedIn();
-        allow create: if signedIn() && userDoc().data.role in ['admin', 'authority'];
+        allow create: if isAdmin();
       }
     }
 
     match /flags/{reportId}/flags/{uid} {
       allow create: if signedIn() && request.auth.uid == uid;
-      allow read: if signedIn() && userDoc().data.role in ['admin', 'authority'];
+      allow read: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create: if signedIn()
+        && (
+          request.resource.data.userId == request.auth.uid
+          || isAdmin()
+          || request.resource.data.type in ['report_upvoted', 'report_verified']
+        )
+        && request.resource.data.title is string
+        && request.resource.data.message is string
+        && request.resource.data.type in [
+          'report_created',
+          'report_verified',
+          'report_upvoted',
+          'status_updated',
+          'resolved',
+          'admin_message',
+          'emergency_alert'
+        ];
+      allow update: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    match /emergencyAlerts/{alertId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin();
+    }
+
+    match /adminNotifications/{eventId} {
+      allow read, create, update: if isAdmin();
+    }
+
+    match /pushMessages/{messageId} {
+      allow create: if signedIn()
+        && (
+          request.resource.data.userId == request.auth.uid
+          || isAdmin()
+          || request.resource.data.type in ['report_upvoted', 'report_verified']
+        );
+      allow read, update, delete: if isAdmin();
     }
   }
 }

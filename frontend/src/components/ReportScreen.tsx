@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Camera, MapPin, X, Check, ChevronRight, ChevronLeft, Zap, Trash2, Lightbulb, Droplets, AlertTriangle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Camera, MapPin, X, Check, ChevronRight, ChevronLeft, Zap, Trash2, Lightbulb, Droplets, AlertTriangle, Sparkles, Award } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Report, User } from '../App';
 import { translations } from './translations';
@@ -8,6 +8,42 @@ import { useRateLimit } from '../hooks/useRateLimit';
 import { DuplicateCandidate, findPotentialDuplicate } from '../utils/duplicateDetection';
 import { createImageBlurhash } from '../utils/imageHash';
 import { useAuth } from '../context/AuthContext';
+
+// Deterministic AI confidence score using keyword matching
+function getAIConfidence(category: string, title: string, description: string): number {
+  const text = `${title} ${description}`.toLowerCase();
+  const keywordMap: Record<string, string[]> = {
+    pothole: ['pothole', 'road', 'damage', 'crack', 'hole', 'asphalt', 'pavement'],
+    garbage: ['garbage', 'trash', 'waste', 'dump', 'bin', 'overflow', 'litter'],
+    streetlight: ['light', 'lamp', 'dark', 'electricity', 'pole', 'bulb', 'outage'],
+    water: ['water', 'pipe', 'leak', 'supply', 'shortage', 'burst', 'leakage'],
+    sewerage: ['sewer', 'sewage', 'drain', 'manhole', 'overflow', 'smell', 'stench'],
+    safety: ['robbery', 'theft', 'unsafe', 'danger', 'harassment', 'crime', 'threat'],
+  };
+  const keywords = keywordMap[category] || [];
+  const matches = keywords.filter(k => text.includes(k)).length;
+  const base = 70;
+  const boost = Math.min(matches * 5, 25);
+  return base + boost + (category ? 3 : 0);
+}
+
+// Fallback district lookup when Nominatim fails
+function getNearestDistrict(lat: number, lng: number): string {
+  const districts: Record<string, [number, number]> = {
+    'Saddar': [24.8553, 67.0104], 'Clifton': [24.8042, 67.0239],
+    'Gulshan-e-Iqbal': [24.9166, 67.0942], 'North Nazimabad': [24.9302, 67.0434],
+    'Korangi': [24.8392, 67.1155], 'Malir': [24.8904, 67.2102],
+    'Lyari': [24.8596, 67.0033], 'Kemari': [24.8283, 66.9861],
+    'PECHS': [24.8750, 67.0594], 'Defence': [24.8140, 67.0686],
+  };
+  let nearest = 'Karachi';
+  let minDist = Infinity;
+  for (const [name, [dlat, dlng]] of Object.entries(districts)) {
+    const d = Math.sqrt((lat - dlat) ** 2 + (lng - dlng) ** 2);
+    if (d < minDist) { minDist = d; nearest = name; }
+  }
+  return nearest;
+}
 
 interface ReportScreenProps {
   user: User;
@@ -25,6 +61,7 @@ const categories = [
 ];
 
 export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
+  const { user: authUser } = useAuth();
   const [step, setStep] = useState(1);
   const [category, setCategory] = useState('');
   const [title, setTitle] = useState('');
@@ -38,29 +75,37 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
 
   const t = translations[user.language];
 
+  // Reverse geocoding
   useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            ward: 'Live Ward', // Replace with reverse geocoding if available
-            district: 'Live District' // Replace with reverse geocoding if available
-          });
-        },
-        (error) => {
-          console.error("Error getting location", error);
-          // Fallback to default Karachi location
-          setLocation({
-            lat: user.coordinates.lat,
-            lng: user.coordinates.lng,
-            ward: 'Saddar',
-            district: user.district
-          });
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+          const ward = addr.suburb || addr.neighbourhood || addr.quarter || addr.town || 'Unknown Area';
+          const district = addr.city_district || addr.county || addr.state_district || 'Karachi';
+          setLocation({ lat: latitude, lng: longitude, ward, district });
+        } catch {
+          const district = getNearestDistrict(latitude, longitude);
+          setLocation({ lat: latitude, lng: longitude, ward: district, district: 'Karachi' });
         }
-      );
-    }
+      },
+      () => {
+        setLocation({
+          lat: user.coordinates.lat,
+          lng: user.coordinates.lng,
+          ward: user.district,
+          district: 'Karachi',
+        });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   }, [user.coordinates, user.district]);
 
   const handleCameraCapture = () => {
@@ -110,7 +155,7 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
       street: 'Current Location',
       coordinates,
       aiTag: catInfo?.value || 'Unknown',
-      aiConfidence: Math.floor(Math.random() * 15) + 85,
+      aiConfidence: getAIConfidence(category, title, description),
       status: 'reported' as const,
       severity: 7,
       type: category,
@@ -138,6 +183,8 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
   };
 
   const steps = [t.stepDetails, t.stepLocation, t.stepReview];
+  const activeCategory = categories.find(c => c.value === category);
+  const currentConfidence = getAIConfidence(category, title, description);
 
   if (showSuccess) {
     return (
@@ -167,364 +214,451 @@ export function ReportScreen({ user, onSubmit, onCancel }: ReportScreenProps) {
   }
 
   return (
-    <div className="min-h-screen" style={{ background: '#0A1628' }}>
+    <div className="min-h-screen pb-12" style={{ background: '#0A1628' }}>
       {/* Header */}
       <div
-        className="sticky top-0 z-40 px-4 py-3"
+        className="sticky top-0 z-40 px-6 py-4"
         style={{ background: '#0A1628', borderBottom: '1px solid rgba(0,212,255,0.08)' }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={onCancel} className="p-2 rounded-lg" style={{ background: 'rgba(0,212,255,0.08)' }}>
-            <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
-          </button>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: '16px', fontWeight: 700, color: '#F0F4FF' }}>
-            {t.reportTitle}
-          </h1>
-          <div className="w-8" />
-        </div>
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={onCancel} className="p-2 rounded-lg" style={{ background: 'rgba(0,212,255,0.08)' }}>
+              <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
+            </button>
+            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: '20px', fontWeight: 800, color: '#F0F4FF' }}>
+              {t.reportTitle}
+            </h1>
+          </div>
 
-        {/* Step Indicator */}
-        <div className="flex items-center gap-2">
-          {steps.map((label, i) => (
-            <React.Fragment key={label}>
-              <div className="flex-1">
+          {/* Stepper bar for desktop/mobile */}
+          <div className="flex items-center gap-6 md:w-80">
+            {steps.map((label, i) => (
+              <div key={label} className="flex-1 flex flex-col gap-1.5">
                 <div
                   className="h-1 rounded-full transition-all duration-500"
                   style={{
                     background: i < step ? '#00D4FF' : i === step - 1 ? '#00D4FF' : 'rgba(0,212,255,0.1)',
                   }}
                 />
-                <span style={{ fontSize: '10px', color: i < step ? '#00D4FF' : '#4A6080', marginTop: '4px', display: 'block' }}>
+                <span className="hidden md:inline-block text-[11px] font-semibold text-right" style={{ color: i < step ? '#00D4FF' : '#4A6080' }}>
                   {label}
                 </span>
               </div>
-            </React.Fragment>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="p-4">
-        <AnimatePresence mode="wait">
-          {/* Step 1: Details */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-6"
-            >
-              {/* Category Grid */}
-              <div>
-                <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '12px' }}>
-                  {t.reportCategory}
-                </label>
-                <div className="grid grid-cols-3 gap-3">
-                  {categories.map((cat) => {
-                    const isSelected = category === cat.value;
-                    const CategoryIcon = cat.LucideIcon;
-                    return (
+      {/* Main Grid Layout */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column: Form Steps (Span 7) */}
+          <div className="lg:col-span-7 bg-[#0F2040] border border-[rgba(0,212,255,0.08)] rounded-2xl p-6 shadow-xl">
+            <AnimatePresence mode="wait">
+              {/* Step 1: Details */}
+              {step === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-6"
+                >
+                  {/* Category Grid */}
+                  <div>
+                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '12px' }}>
+                      {t.reportCategory}
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {categories.map((cat) => {
+                        const isSelected = category === cat.value;
+                        const CategoryIcon = cat.LucideIcon;
+                        return (
+                          <motion.button
+                            key={cat.value}
+                            className="flex flex-col items-center gap-2.5 p-4 rounded-xl transition-all"
+                            style={{
+                              background: isSelected ? `${cat.color}15` : '#0A1628',
+                              border: `2px solid ${isSelected ? cat.color : 'rgba(0,212,255,0.08)'}`,
+                            }}
+                            onClick={() => setCategory(cat.value)}
+                            whileTap={{ scale: 0.96 }}
+                          >
+                            <div
+                              className="w-10 h-10 rounded-full flex items-center justify-center"
+                              style={{ background: `${cat.color}20`, border: `1px solid ${cat.color}40` }}
+                            >
+                              <CategoryIcon className="w-5 h-5" style={{ color: cat.color }} />
+                            </div>
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: isSelected ? cat.color : '#8BA3C7' }}>
+                              {t[cat.value as keyof typeof t] as string}
+                            </span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Title Input */}
+                  <div>
+                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
+                      {user.language === 'ur' ? 'مسئلے کا عنوان' : 'Issue Title'}
+                    </label>
+                    <input
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder={t.describeIssue}
+                      className="w-full fk-input"
+                    />
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
+                      {t.addDescription}
+                    </label>
+                    <textarea
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder={t.addDescription}
+                      rows={4}
+                      className="w-full fk-input resize-none"
+                    />
+                  </div>
+
+                  {/* Photo Upload */}
+                  <div>
+                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
+                      {t.uploadPhoto}
+                    </label>
+                    {!capturedPhoto ? (
                       <motion.button
-                        key={cat.value}
-                        className="flex flex-col items-center gap-2 p-4 rounded-2xl transition-all"
+                        className="w-full aspect-video rounded-xl flex flex-col items-center justify-center gap-3"
                         style={{
-                          background: isSelected ? `${cat.color}15` : '#0F2040',
-                          border: `2px solid ${isSelected ? cat.color : 'rgba(0,212,255,0.08)'}`,
+                          border: '2px dashed rgba(0,212,255,0.2)',
+                          background: 'rgba(0,212,255,0.03)',
                         }}
-                        onClick={() => setCategory(cat.value)}
-                        whileTap={{ scale: 0.95 }}
+                        onClick={handleCameraCapture}
+                        whileTap={{ scale: 0.98 }}
                       >
-                        <div
-                          className="w-10 h-10 rounded-full flex items-center justify-center"
-                          style={{ background: `${cat.color}20`, border: `1px solid ${cat.color}40` }}
-                        >
-                          <CategoryIcon className="w-5 h-5" style={{ color: cat.color }} />
-                        </div>
-                        <span style={{ fontSize: '11px', fontWeight: 500, color: isSelected ? cat.color : '#8BA3C7' }}>
-                          {t[cat.value as keyof typeof t] as string}
-                        </span>
+                        <Camera className="w-8 h-8" style={{ color: '#00D4FF' }} />
+                        <span style={{ fontSize: '12px', color: '#4A6080', fontWeight: 500 }}>{t.takePhoto}</span>
                       </motion.button>
-                    );
-                  })}
-                </div>
-              </div>
+                    ) : (
+                      <div className="relative aspect-video rounded-xl overflow-hidden">
+                        <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover" />
+                        <button
+                          className="absolute top-2.5 right-2.5 w-8 h-8 rounded-full flex items-center justify-center shadow-md"
+                          style={{ background: 'rgba(255,59,59,0.9)' }}
+                          onClick={() => setCapturedPhoto('')}
+                        >
+                          <X className="w-4 h-4" style={{ color: '#FFF' }} />
+                        </button>
+                      </div>
+                    )}
+                  </div>
 
-              {/* Title Input */}
-              <div>
-                <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
-                  {t.describeIssue}
-                </label>
-                <input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder={t.describeIssue}
-                  className="w-full fk-input"
-                />
-              </div>
-
-              {/* Description */}
-              <div>
-                <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
-                  {t.addDescription}
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t.addDescription}
-                  rows={3}
-                  className="w-full fk-input resize-none"
-                />
-              </div>
-
-              {/* Photo Upload */}
-              <div>
-                <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
-                  {t.uploadPhoto}
-                </label>
-                {!capturedPhoto ? (
+                  {/* Next Button */}
                   <motion.button
-                    className="w-full aspect-video rounded-2xl flex flex-col items-center justify-center gap-3"
+                    onClick={() => setStep(2)}
+                    disabled={!category}
+                    className="w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all"
                     style={{
-                      border: '2px dashed rgba(0,212,255,0.2)',
-                      background: 'rgba(0,212,255,0.03)',
+                      background: category ? '#00D4FF' : 'rgba(0,212,255,0.15)',
+                      color: category ? '#0A1628' : '#4A6080',
+                      boxShadow: category ? '0 4px 14px rgba(0,212,255,0.2)' : 'none',
                     }}
-                    onClick={handleCameraCapture}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <Camera className="w-10 h-10" style={{ color: '#00D4FF' }} />
-                    <span style={{ fontSize: '13px', color: '#4A6080' }}>{t.takePhoto}</span>
+                    {t.next}
+                    <ChevronRight className="w-5 h-5" />
                   </motion.button>
-                ) : (
-                  <div className="relative aspect-video rounded-2xl overflow-hidden">
-                    <img src={capturedPhoto} alt="Captured" className="w-full h-full object-cover" />
+                </motion.div>
+              )}
+
+              {/* Step 2: Location */}
+              {step === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-6"
+                >
+                  {/* Map Mockup */}
+                  <div
+                    className="w-full rounded-xl overflow-hidden relative"
+                    style={{
+                      height: '300px',
+                      background: '#0A1628',
+                      border: '1px solid rgba(0,212,255,0.08)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'column',
+                      gap: '12px',
+                    }}
+                  >
+                    {/* Simulated Map lines/grid details */}
+                    <div className="absolute inset-0 opacity-10" style={{
+                      backgroundImage: 'radial-gradient(circle, #00D4FF 1px, transparent 1px)',
+                      backgroundSize: '20px 20px'
+                    }} />
+                    <MapPin className="w-12 h-12 relative animate-bounce" style={{ color: '#00D4FF' }} />
+                    <p style={{ fontSize: '15px', color: '#F0F4FF', fontWeight: 600 }}>{location ? `${location.ward}, ${location.district}` : 'Locating...'}</p>
+                    <p style={{ fontSize: '12px', color: '#4A6080', fontFamily: "'JetBrains Mono'" }}>
+                      {location ? `${location.lat.toFixed(6)}°N, ${location.lng.toFixed(6)}°E` : '---'}
+                    </p>
+                  </div>
+
+                  {/* Use Location Button */}
+                  <button
+                    className="w-full py-3.5 rounded-xl flex items-center justify-center gap-2 font-semibold transition-all hover:bg-[rgba(0,212,255,0.04)]"
+                    style={{
+                      background: 'rgba(0,212,255,0.05)',
+                      color: '#00D4FF',
+                      border: '1px solid rgba(0,212,255,0.15)',
+                    }}
+                  >
+                    <MapPin className="w-4 h-4 animate-pulse" />
+                    {t.useMyLocation}
+                  </button>
+
+                  {/* Location Address Details */}
+                  <motion.div
+                    className="rounded-xl p-4"
+                    style={{ background: '#0A1628', border: '1px solid rgba(0,212,255,0.06)' }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <MapPin className="w-4 h-4" style={{ color: '#00D4FF' }} />
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: '#F0F4FF' }}>Detected Ward / Suburb</span>
+                    </div>
+                    <p style={{ fontSize: '13px', color: '#8BA3C7', lineHeight: '1.5' }}>
+                      {location ? `${location.ward}, district of ${location.district}, Karachi, Sindh, Pakistan` : 'Detecting your civic constituency...'}
+                    </p>
+                  </motion.div>
+
+                  {/* Navigation buttons */}
+                  <div className="flex gap-3">
                     <button
-                      className="absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center"
-                      style={{ background: 'rgba(255,59,59,0.9)' }}
-                      onClick={() => setCapturedPhoto('')}
+                      onClick={() => setStep(1)}
+                      className="flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold"
+                      style={{
+                        background: 'rgba(0,212,255,0.05)',
+                        color: '#8BA3C7',
+                        border: '1px solid rgba(0,212,255,0.1)',
+                      }}
                     >
-                      <X className="w-4 h-4" style={{ color: '#FFF' }} />
+                      <ChevronLeft className="w-5 h-5" />
+                      {t.back}
                     </button>
+                    <motion.button
+                      onClick={() => setStep(3)}
+                      className="flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold"
+                      style={{ background: '#00D4FF', color: '#0A1628' }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {t.next}
+                      <ChevronRight className="w-5 h-5" />
+                    </motion.button>
                   </div>
-                )}
-              </div>
+                </motion.div>
+              )}
 
-              {/* Next Button */}
-              <motion.button
-                onClick={() => setStep(2)}
-                disabled={!category}
-                className="w-full py-3.5 rounded-2xl flex items-center justify-center gap-2 font-semibold transition-opacity"
-                style={{
-                  background: category ? '#00D4FF' : 'rgba(0,212,255,0.2)',
-                  color: category ? '#0A1628' : '#4A6080',
-                  opacity: category ? 1 : 0.5,
-                }}
-                whileTap={{ scale: 0.98 }}
-              >
-                {t.next}
-                <ChevronRight className="w-5 h-5" />
-              </motion.button>
-            </motion.div>
-          )}
-
-          {/* Step 2: Location */}
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-4"
-            >
-              {/* Map placeholder */}
-              <div
-                className="w-full rounded-2xl overflow-hidden"
-                style={{
-                  height: '280px',
-                  background: '#0F2040',
-                  border: '1px solid rgba(0,212,255,0.08)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'column',
-                  gap: '12px',
-                }}
-              >
-                <MapPin className="w-12 h-12" style={{ color: '#00D4FF' }} />
-                <p style={{ fontSize: '14px', color: '#8BA3C7' }}>Karachi, Pakistan</p>
-                <p style={{ fontSize: '12px', color: '#4A6080' }}>
-                  {user.coordinates.lat.toFixed(4)}°N, {user.coordinates.lng.toFixed(4)}°E
-                </p>
-              </div>
-
-              {/* Use Location Button */}
-              <button
-                className="w-full py-3 rounded-2xl flex items-center justify-center gap-2"
-                style={{
-                  background: 'rgba(0,212,255,0.08)',
-                  color: '#00D4FF',
-                  border: '1px solid rgba(0,212,255,0.15)',
-                }}
-              >
-                <MapPin className="w-4 h-4" />
-                {t.useMyLocation}
-              </button>
-
-              {/* Address Card */}
-              <motion.div
-                className="rounded-2xl p-4"
-                style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.08)' }}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <MapPin className="w-4 h-4" style={{ color: '#00D4FF' }} />
-                  <span style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF' }}>Detected Location</span>
-                </div>
-                <p style={{ fontSize: '13px', color: '#8BA3C7' }}>
-                  {user.district} • {user.coordinates.lat.toFixed(4)}, {user.coordinates.lng.toFixed(4)}
-                </p>
-              </motion.div>
-
-              {/* Navigation Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 py-3.5 rounded-2xl flex items-center justify-center gap-2"
-                  style={{
-                    background: 'rgba(0,212,255,0.05)',
-                    color: '#8BA3C7',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                  }}
+              {/* Step 3: Review */}
+              {step === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.25 }}
+                  className="space-y-6"
                 >
-                  <ChevronLeft className="w-5 h-5" />
-                  {t.back}
-                </button>
-                <motion.button
-                  onClick={() => setStep(3)}
-                  className="flex-1 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-semibold"
-                  style={{ background: '#00D4FF', color: '#0A1628' }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {t.next}
-                  <ChevronRight className="w-5 h-5" />
-                </motion.button>
-              </div>
-            </motion.div>
-          )}
+                  <div className="rounded-xl p-5 space-y-4" style={{ background: '#0A1628', border: '1px solid rgba(0,212,255,0.06)' }}>
+                    <h3 className="text-sm font-bold text-white border-b border-[rgba(0,212,255,0.06)] pb-2 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-[#FFB800]" />
+                      {user.language === 'ur' ? 'مسودہ جائزہ' : 'Final Validation Check'}
+                    </h3>
 
-          {/* Step 3: Review */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              transition={{ duration: 0.3 }}
-              className="space-y-4"
-            >
-              {/* Summary Card */}
-              <div
-                className="rounded-2xl p-4 space-y-4"
-                style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.08)' }}
-              >
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#F0F4FF' }}>{t.stepReview}</h3>
-                {rateLimit.isLimited && (
-                  <div className="rounded-xl p-3" style={{ background: 'rgba(255,107,53,0.12)', border: '1px solid rgba(255,107,53,0.25)', color: '#FFB800' }}>
-                    {rateLimit.message}
-                  </div>
-                )}
+                    {rateLimit.isLimited && (
+                      <div className="rounded-xl p-3" style={{ background: 'rgba(255,107,53,0.12)', border: '1px solid rgba(255,107,53,0.25)', color: '#FFB800' }}>
+                        {rateLimit.message}
+                      </div>
+                    )}
 
-                {capturedPhoto && (
-                  <div className="aspect-video rounded-xl overflow-hidden">
-                    <img src={capturedPhoto} alt="Preview" className="w-full h-full object-cover" />
-                  </div>
-                )}
+                    <div className="grid grid-cols-2 gap-4 text-xs">
+                      <div>
+                        <span className="text-[#4A6080] block mb-0.5">{t.reportCategory}</span>
+                        <span className="text-white font-semibold capitalize flex items-center gap-1.5">
+                          {activeCategory && <activeCategory.LucideIcon className="w-3.5 h-3.5" style={{ color: activeCategory.color }} />}
+                          {category}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[#4A6080] block mb-0.5">{t.reportLocation}</span>
+                        <span className="text-white font-semibold">{location?.ward || user.district}</span>
+                      </div>
+                    </div>
 
-                <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span style={{ fontSize: '13px', color: '#4A6080' }}>{t.reportCategory}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#F0F4FF', textTransform: 'capitalize' }}>
-                      {category}
-                    </span>
+                    {title && (
+                      <div className="border-t border-[rgba(0,212,255,0.04)] pt-3">
+                        <span className="text-xs text-[#4A6080] block mb-1">Title</span>
+                        <span className="text-sm font-semibold text-white">{title}</span>
+                      </div>
+                    )}
+
+                    {description && (
+                      <div className="border-t border-[rgba(0,212,255,0.04)] pt-3">
+                        <span className="text-xs text-[#4A6080] block mb-1">Description</span>
+                        <p className="text-xs text-[#8BA3C7] leading-relaxed">{description}</p>
+                      </div>
+                    )}
+
+                    {/* Duplicate Card */}
+                    {duplicate && !submitAnyway && (
+                      <div className="rounded-xl p-4 space-y-3" style={{ background: 'rgba(255,184,0,0.08)', border: '1px solid rgba(255,184,0,0.2)' }}>
+                        <p style={{ color: '#FFB800', fontSize: '12.5px', lineHeight: '1.5' }}>
+                          Warning: A duplicate report was detected nearby ({duplicate.distanceMeters}m away, {duplicate.hoursAgo}h ago).
+                        </p>
+                        <div className="flex gap-2">
+                          <button
+                            className="flex-1 py-2 rounded-lg text-xs font-semibold"
+                            style={{ background: 'rgba(255,184,0,0.12)', color: '#FFB800' }}
+                            onClick={() => window.alert(`Duplicate report matching ID: ${duplicate.id}`)}
+                          >
+                            Inspect Duplicate
+                          </button>
+                          <button
+                            className="flex-1 py-2 rounded-lg text-xs font-bold"
+                            style={{ background: '#FFB800', color: '#0A1628' }}
+                            onClick={() => setSubmitAnyway(true)}
+                          >
+                            Submit Anyway
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  {title && (
-                    <div className="flex justify-between">
-                      <span style={{ fontSize: '13px', color: '#4A6080' }}>Title</span>
-                      <span style={{ fontSize: '13px', fontWeight: 500, color: '#F0F4FF' }}>{title}</span>
+
+                  {/* Actions */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setStep(2)}
+                      className="flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold"
+                      style={{
+                        background: 'rgba(0,212,255,0.05)',
+                        color: '#8BA3C7',
+                        border: '1px solid rgba(0,212,255,0.1)',
+                      }}
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                      {t.back}
+                    </button>
+                    <motion.button
+                      onClick={handleSubmit}
+                      disabled={rateLimit.isLimited}
+                      className="flex-1 py-4 rounded-xl flex items-center justify-center gap-2 font-bold"
+                      style={{
+                        background: rateLimit.isLimited ? 'rgba(0,212,255,0.15)' : '#00C896',
+                        color: '#0A1628',
+                        boxShadow: rateLimit.isLimited ? 'none' : '0 4px 20px rgba(0,200,150,0.3)',
+                      }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      {t.submitReport}
+                      <Check className="w-5 h-5" />
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Right Column: Live Mockup Card Preview (Span 5) (Visible only on Desktop) */}
+          <div className="hidden lg:block lg:col-span-5 sticky top-28">
+            <div className="rounded-2xl p-6 border border-[rgba(0,212,255,0.12)] bg-gradient-to-br from-[#0F2040] to-[#0A1628] shadow-2xl relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[rgba(0,212,255,0.06)] rounded-full blur-3xl pointer-events-none" />
+
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#00D4FF] mb-4 flex items-center gap-2">
+                <Sparkles className="w-3.5 h-3.5 text-[#00D4FF]" />
+                Live Citizen Card Preview
+              </h3>
+
+              {/* Feed Card Simulation */}
+              <div className="rounded-xl overflow-hidden border border-[rgba(255,255,255,0.05)] bg-[#0F2040] shadow-lg">
+                {/* Simulated Image */}
+                <div className="aspect-video relative bg-[#0A1628] flex items-center justify-center overflow-hidden">
+                  {capturedPhoto ? (
+                    <img src={capturedPhoto} alt="Live Card Preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="text-center p-6 flex flex-col items-center gap-2">
+                      <Camera className="w-8 h-8 text-[#4A6080] opacity-50" />
+                      <span className="text-[11px] text-[#4A6080] font-semibold">Real-time image upload preview</span>
                     </div>
                   )}
-                  <div className="flex justify-between">
-                    <span style={{ fontSize: '13px', color: '#4A6080' }}>{t.reportLocation}</span>
-                    <span style={{ fontSize: '13px', fontWeight: 500, color: '#F0F4FF' }}>{user.district}</span>
-                  </div>
+
+                  {/* AI Confidence Badge */}
+                  {category && (
+                    <div className="absolute top-3 right-3 bg-[#0A1628] border border-[rgba(0,212,255,0.25)] rounded-lg px-2 py-1 flex items-center gap-1.5">
+                      <Zap className="w-3.5 h-3.5 text-[#FFB800]" />
+                      <span className="text-[10px] font-bold text-white font-mono">{currentConfidence}% AI Conf.</span>
+                    </div>
+                  )}
                 </div>
 
-                {description && (
-                  <p style={{ fontSize: '13px', color: '#8BA3C7', borderTop: '1px solid rgba(0,212,255,0.06)', paddingTop: '12px' }}>
-                    {description}
-                  </p>
-                )}
-
-                {duplicate && !submitAnyway && (
-                  <div className="rounded-xl p-3 space-y-3" style={{ background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.28)' }}>
-                    <p style={{ color: '#FFB800', fontSize: 13 }}>
-                      Similar issue already reported {duplicate.hoursAgo} hours ago within {duplicate.distanceMeters}m.
-                    </p>
-                    <div className="flex gap-2">
-                      <button
-                        className="flex-1 py-2 rounded-lg text-sm"
-                        style={{ background: '#0A1628', color: '#00D4FF' }}
-                        onClick={() => window.alert(`Existing report: ${duplicate.id}`)}
-                      >
-                        View Existing
-                      </button>
-                      <button
-                        className="flex-1 py-2 rounded-lg text-sm font-bold"
-                        style={{ background: '#FFB800', color: '#0A1628' }}
-                        onClick={() => setSubmitAnyway(true)}
-                      >
-                        Submit Anyway
-                      </button>
-                    </div>
+                {/* Card Body */}
+                <div className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span
+                      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+                      style={{
+                        background: activeCategory ? `${activeCategory.color}15` : 'rgba(0,212,255,0.1)',
+                        color: activeCategory ? activeCategory.color : '#8BA3C7',
+                      }}
+                    >
+                      {category || 'Category'}
+                    </span>
+                    <span className="text-[10px] text-[#4A6080] font-semibold font-mono">Just Now</span>
                   </div>
-                )}
+
+                  <div>
+                    <h4 className="text-sm font-bold text-white line-clamp-1">
+                      {title || 'Issue Title Placeholder'}
+                    </h4>
+                    <p className="text-xs text-[#8BA3C7] line-clamp-2 mt-1 leading-relaxed">
+                      {description || 'Provide details about the issue to see this mock feed card update live.'}
+                    </p>
+                  </div>
+
+                  {/* District / Address footer */}
+                  <div className="flex items-center gap-1.5 pt-3 border-t border-[rgba(255,255,255,0.03)] text-[11px] text-[#4A6080]">
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>{location?.ward || 'Detecting Area...'}, {location?.district || 'Karachi'}</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Navigation Buttons */}
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setStep(2)}
-                  className="flex-1 py-3.5 rounded-2xl flex items-center justify-center gap-2"
-                  style={{
-                    background: 'rgba(0,212,255,0.05)',
-                    color: '#8BA3C7',
-                    border: '1px solid rgba(0,212,255,0.1)',
-                  }}
-                >
-                  <ChevronLeft className="w-5 h-5" />
-                  {t.back}
-                </button>
-                <motion.button
-                  onClick={handleSubmit}
-                  disabled={rateLimit.isLimited}
-                  className="flex-1 py-3.5 rounded-2xl flex items-center justify-center gap-2 font-bold"
-                  style={{
-                    background: rateLimit.isLimited ? 'rgba(0,212,255,0.2)' : '#00D4FF',
-                    color: '#0A1628',
-                    boxShadow: '0 4px 20px rgba(0,212,255,0.3)',
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {t.submitReport}
-                  <Check className="w-5 h-5" />
-                </motion.button>
+              {/* Extra visual metadata details */}
+              <div className="mt-5 space-y-2 bg-[rgba(10,22,40,0.5)] p-3 rounded-lg border border-[rgba(255,255,255,0.03)]">
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-[#4A6080]">Verification Tier</span>
+                  <span className="text-[#00C896] font-semibold flex items-center gap-1">
+                    <Award className="w-3 h-3" /> Citizens Tier 1
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="text-[#4A6080]">SLA Priority Assignment</span>
+                  <span className="text-[#00D4FF] font-semibold">Standard (48-72h)</span>
+                </div>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

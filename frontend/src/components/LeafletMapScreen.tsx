@@ -3,7 +3,7 @@ import L from 'leaflet';
 import 'leaflet.heat';
 import { apiFetch } from '../services/api';
 import 'leaflet/dist/leaflet.css';
-import { Heart, Eye, X, MapPin } from 'lucide-react';
+import { Heart, Eye, X, MapPin, Layers, Flame } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Report, User } from '../App';
 import { translations } from './translations';
@@ -39,10 +39,13 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
   const [selectedFilter, setSelectedFilter] = useState<FilterType>('all');
   const [selectedPin, setSelectedPin] = useState<Report | null>(null);
   const [reportCoordinates, setReportCoordinates] = useState<Map<string, [number, number]>>(new Map());
+  const [useBackendHeatmap, setUseBackendHeatmap] = useState(false);
+  const [backendHeatPoints, setBackendHeatPoints] = useState<[number, number, number][]>([]);
   const mapRef = useRef<HTMLDivElement>(null);
   const leafletMapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
   const heatLayerRef = useRef<any>(null);
+
 
   const t = translations[user.language];
 
@@ -85,6 +88,25 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
     if (diffHours < 24) return `${diffHours} ${t.hoursAgo}`;
     return `${diffDays} ${t.daysAgo}`;
   };
+
+  // Fetch backend heatmap when toggled on
+  useEffect(() => {
+    if (!useBackendHeatmap) return;
+    apiFetch('/analytics/heatmap')
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        const points = data?.data || data?.heatmap;
+        if (points && Array.isArray(points)) {
+          const pts: [number, number, number][] = points.map((pt: any) => [
+            Number(pt.lat ?? pt.latitude),
+            Number(pt.lng ?? pt.longitude),
+            Math.min(Number(pt.weight ?? pt.score ?? 1) / 10, 1),
+          ]);
+          setBackendHeatPoints(pts);
+        }
+      })
+      .catch(() => {/* silently fall back to frontend heatmap */});
+  }, [useBackendHeatmap]);
 
   // Generate stable coordinates
   useEffect(() => {
@@ -155,8 +177,6 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
     });
     markersRef.current = [];
 
-    const heatPoints: [number, number, number][] = [];
-
     filteredReports.forEach((report) => {
       const coordinates = reportCoordinates.get(report.id);
       if (!coordinates) return;
@@ -166,7 +186,6 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
       // leaflet.heat expects [lat, lng, intensity]
       // coordinates[1] is lat, coordinates[0] is lng
       const intensity = report.priority === 'high' ? 1.0 : (report.priority === 'medium' ? 0.8 : 0.6);
-      heatPoints.push([coordinates[1], coordinates[0], intensity]);
 
       const customIcon = L.divIcon({
         className: 'custom-leaflet-marker',
@@ -210,17 +229,27 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
       markersRef.current.push(marker);
     });
 
+    // Use backend heatmap or frontend-computed points
+    const heatPoints = useBackendHeatmap && backendHeatPoints.length > 0
+      ? backendHeatPoints
+      : filteredReports.map(report => {
+          const coordinates = reportCoordinates.get(report.id);
+          if (!coordinates) return null;
+          const intensity = report.priority === 'high' ? 1.0 : (report.priority === 'medium' ? 0.8 : 0.6);
+          return [coordinates[1], coordinates[0], intensity] as [number, number, number];
+        }).filter(Boolean) as [number, number, number][];
+
     if (heatLayerRef.current) {
       heatLayerRef.current.setLatLngs(heatPoints);
     }
-  }, [filteredReports, reportCoordinates]);
+  }, [filteredReports, reportCoordinates, useBackendHeatmap, backendHeatPoints]);
 
   return (
-    <div className="flex flex-col relative" style={{ height: 'calc(100vh - 5rem)', background: '#0A1628' }}>
-      {/* Filter Chips */}
+    <div className="flex flex-col relative fk-map-full" style={{ background: '#0A1628', height: '100vh' }}>
+      {/* Filter Chips + Heatmap Toggle */}
       <div
-        className="absolute top-3 left-3 right-3 z-30 flex gap-2 overflow-x-auto pb-2"
-        style={{ scrollbarWidth: 'none' }}
+        className="absolute top-3 left-3 right-3 z-30 flex gap-2 items-center"
+        style={{ scrollbarWidth: 'none', overflowX: 'auto', paddingBottom: 4 }}
       >
         {filterOptions.map((option) => (
           <button
@@ -231,16 +260,29 @@ export function LeafletMapScreen({ reports, user, onReportSelect, onUpvote }: Le
               color: selectedFilter === option.value ? '#0A1628' : '#8BA3C7',
               border: `1px solid ${selectedFilter === option.value ? option.color : 'rgba(0,212,255,0.12)'}`,
               boxShadow: selectedFilter === option.value ? `0 2px 8px ${option.color}40` : 'none',
+              flexShrink: 0,
             }}
             onClick={() => setSelectedFilter(option.value)}
           >
-            <div
-              className="w-1.5 h-1.5 rounded-full"
-              style={{ background: selectedFilter === option.value ? '#0A1628' : option.color }}
-            />
+            <div className="w-1.5 h-1.5 rounded-full" style={{ background: selectedFilter === option.value ? '#0A1628' : option.color }} />
             {option.label}
           </button>
         ))}
+        {/* Backend heatmap toggle */}
+        <button
+          onClick={() => setUseBackendHeatmap(v => !v)}
+          style={{
+            flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+            padding: '6px 12px', borderRadius: 100, fontSize: 11, fontWeight: 700,
+            background: useBackendHeatmap ? 'rgba(255,107,53,0.2)' : '#0F2040',
+            color: useBackendHeatmap ? '#FF6B35' : '#4A6080',
+            border: `1px solid ${useBackendHeatmap ? 'rgba(255,107,53,0.4)' : 'rgba(0,212,255,0.12)'}`,
+          }}
+          title={useBackendHeatmap ? 'Using backend heatmap (Haversine clusters)' : 'Switch to backend heatmap'}
+        >
+          <Flame className="w-3.5 h-3.5" />
+          {useBackendHeatmap ? 'API Heatmap ✓' : 'API Heatmap'}
+        </button>
       </div>
 
       {/* Map */}

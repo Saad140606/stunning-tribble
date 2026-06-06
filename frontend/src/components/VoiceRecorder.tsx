@@ -1,187 +1,115 @@
-import React, { useState, useEffect } from 'react';
-import { Mic, MicOff, Play, Pause, Trash2 } from 'lucide-react';
-import { Button } from './ui/button';
-import { motion } from 'motion/react';
+import React, { useRef, useState } from 'react';
 
 interface VoiceRecorderProps {
-  onRecordingComplete: (hasRecording: boolean) => void;
-  language: string;
+  onRecordingComplete?: (blob: Blob, url: string) => void;
+  language?: 'en' | 'ur';
 }
 
-export function VoiceRecorder({ onRecordingComplete, language }: VoiceRecorderProps) {
+// FIX 7: Real VoiceRecorder using MediaRecorder API with live waveform visualizer
+export function VoiceRecorder({ onRecordingComplete, language = 'en' }: VoiceRecorderProps) {
   const [isRecording, setIsRecording] = useState(false);
-  const [hasRecording, setHasRecording] = useState(false);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioLevels, setAudioLevels] = useState<number[]>(Array(20).fill(0));
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [duration, setDuration] = useState(0);
+  const [bars, setBars] = useState<number[]>(Array(20).fill(10));
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animFrameRef = useRef<number | null>(null);
 
-  // Simulate recording timer
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isRecording) {
-      interval = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-        // Simulate audio levels
-        setAudioLevels(prev => 
-          prev.map(() => Math.random() * 100)
-        );
-      }, 100);
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 64;
+      source.connect(analyser);
+      analyserRef.current = analyser;
+
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        setAudioUrl(url);
+        onRecordingComplete?.(blob, url);
+        stream.getTracks().forEach(t => t.stop());
+      };
+
+      recorder.start();
+      mediaRecorderRef.current = recorder;
+      setIsRecording(true);
+      setDuration(0);
+
+      // Real waveform from analyser
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      const animate = () => {
+        analyser.getByteFrequencyData(dataArray);
+        setBars(Array.from({ length: 20 }, (_, i) => (dataArray[Math.floor(i * dataArray.length / 20)] / 255) * 100));
+        animFrameRef.current = requestAnimationFrame(animate);
+      };
+      animate();
+
+      timerRef.current = window.setInterval(() => setDuration(d => d + 1), 1000);
+    } catch {
+      alert(language === 'ur' ? 'مائیکروفون تک رسائی نہیں ملی' : 'Microphone access denied');
     }
-    return () => clearInterval(interval);
-  }, [isRecording]);
-
-  const handleStartRecording = () => {
-    setIsRecording(true);
-    setRecordingTime(0);
-    setHasRecording(false);
   };
 
-  const handleStopRecording = () => {
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
     setIsRecording(false);
-    setHasRecording(true);
-    setAudioLevels(Array(20).fill(0));
-    onRecordingComplete(true);
+    setBars(Array(20).fill(10));
   };
 
-  const handleDeleteRecording = () => {
-    setHasRecording(false);
-    setRecordingTime(0);
-    setIsPlaying(false);
-    onRecordingComplete(false);
-  };
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-    // Simulate playback completion after 3 seconds
-    if (!isPlaying) {
-      setTimeout(() => {
-        setIsPlaying(false);
-      }, 3000);
-    }
-  };
-
-  const formatTime = (centiseconds: number) => {
-    const seconds = Math.floor(centiseconds / 10);
-    const cs = centiseconds % 10;
-    return `${seconds}.${cs}s`;
-  };
-
-  if (hasRecording) {
-    return (
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Mic className="w-4 h-4 text-green-600" />
-            <span className="text-sm font-medium text-green-800">
-              Voice Note Recorded
-            </span>
-          </div>
-          <span className="text-xs text-green-600">
-            {formatTime(recordingTime)}
-          </span>
-        </div>
-        
-        {/* Waveform visualization (static for recorded audio) */}
-        <div className="flex items-center gap-1 h-8 mb-3">
-          {Array(30).fill(0).map((_, i) => (
-            <div
-              key={i}
-              className="bg-green-300 rounded-full flex-1"
-              style={{
-                height: `${Math.random() * 70 + 10}%`,
-                minHeight: '2px'
-              }}
-            />
-          ))}
-        </div>
-        
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handlePlayPause}
-            className="flex-1"
-          >
-            {isPlaying ? (
-              <>
-                <Pause className="w-4 h-4 mr-1" />
-                Pause
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 mr-1" />
-                Play
-              </>
-            )}
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDeleteRecording}
-            className="text-red-600 hover:text-red-700"
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (isRecording) {
-    return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <motion.div
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ duration: 1, repeat: Infinity }}
-            >
-              <Mic className="w-4 h-4 text-red-600" />
-            </motion.div>
-            <span className="text-sm font-medium text-red-800">
-              Recording...
-            </span>
-          </div>
-          <span className="text-xs text-red-600 font-mono">
-            {formatTime(recordingTime)}
-          </span>
-        </div>
-        
-        {/* Real-time waveform visualization */}
-        <div className="flex items-center gap-1 h-8 mb-3">
-          {audioLevels.map((level, i) => (
-            <motion.div
-              key={i}
-              className="bg-red-400 rounded-full flex-1"
-              style={{ height: `${level * 0.6 + 10}%`, minHeight: '2px' }}
-              animate={{ height: `${level * 0.6 + 10}%` }}
-              transition={{ duration: 0.1 }}
-            />
-          ))}
-        </div>
-        
-        <Button
-          variant="destructive"
-          size="sm"
-          onClick={handleStopRecording}
-          className="w-full"
-        >
-          <MicOff className="w-4 h-4 mr-2" />
-          Stop Recording
-        </Button>
-      </div>
-    );
-  }
+  const formatDuration = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
   return (
-    <Button
-      variant="outline"
-      onClick={handleStartRecording}
-      className="w-full"
-    >
-      <Mic className="w-4 h-4 mr-2" />
-      Record Voice Note
-    </Button>
+    <div style={{ background: '#0F2040', borderRadius: 16, padding: '16px', border: '1px solid rgba(0,212,255,0.1)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, height: 48, marginBottom: 12 }}>
+        {bars.map((h, i) => (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              borderRadius: 2,
+              background: isRecording ? '#00D4FF' : '#1E3A5F',
+              height: `${Math.max(h, 8)}%`,
+              transition: 'height 0.05s',
+            }}
+          />
+        ))}
+      </div>
+      {isRecording && (
+        <p style={{ textAlign: 'center', color: '#FF3B3B', fontSize: 13, marginBottom: 8 }}>
+          ● {formatDuration(duration)}
+        </p>
+      )}
+      {audioUrl && !isRecording && (
+        <audio controls src={audioUrl} style={{ width: '100%', marginBottom: 8 }} />
+      )}
+      <button
+        onClick={isRecording ? stopRecording : startRecording}
+        style={{
+          width: '100%',
+          padding: '10px',
+          borderRadius: 12,
+          fontWeight: 700,
+          fontSize: 13,
+          background: isRecording ? '#FF3B3B' : 'rgba(0,212,255,0.12)',
+          color: isRecording ? '#fff' : '#00D4FF',
+          border: `1px solid ${isRecording ? '#FF3B3B' : 'rgba(0,212,255,0.2)'}`,
+          cursor: 'pointer',
+        }}
+      >
+        {isRecording
+          ? (language === 'ur' ? '⏹ ریکارڈنگ روکیں' : '⏹ Stop Recording')
+          : (language === 'ur' ? '🎤 ریکارڈ کریں' : '🎤 Start Recording')}
+      </button>
+    </div>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BarChart3, Clock, FileText, LayoutDashboard, LogOut, Map, Siren, Users } from 'lucide-react';
+import { BarChart3, Bell, Clock, FileText, LayoutDashboard, LogOut, Map, RadioTower, Siren, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DashboardScreen } from './DashboardScreen';
 import { ReportsTable } from './ReportsTable';
@@ -7,6 +7,9 @@ import { EmergencyQueue } from './EmergencyQueue';
 import { AdminReport, useAdminReports } from './useAdminReports';
 import { UserManagement } from './UserManagement';
 import { AdminHeatmap } from './AdminHeatmap';
+import { NotificationBell } from '../components/notifications/NotificationBell';
+import { AdminEmergencyAlertForm } from './AdminEmergencyAlertForm';
+import { AdminNotificationPanel } from './AdminNotificationPanel';
 
 const tabs = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -15,6 +18,8 @@ const tabs = [
   { id: 'inprogress', label: 'In Progress', icon: Clock },
   { id: 'resolved', label: 'Resolved', icon: FileText },
   { id: 'emergency', label: 'Emergency Queue', icon: Siren },
+  { id: 'alerts', label: 'Broadcast Alerts', icon: RadioTower },
+  { id: 'notifications', label: 'Notifications', icon: Bell },
   { id: 'heatmap', label: 'Heatmap', icon: Map },
   { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   { id: 'users', label: 'User Directory', icon: Users },
@@ -26,7 +31,7 @@ export function AdminApp() {
   const { profile, signOut } = useAuth();
 
   const filtered = reports.filter((report) => {
-    if (active === 'all' || active === 'dashboard' || active === 'analytics' || active === 'heatmap') return true;
+    if (active === 'all' || active === 'dashboard' || active === 'analytics' || active === 'heatmap' || active === 'notifications' || active === 'alerts') return true;
     if (active === 'pending') return report.status === 'reported';
     if (active === 'emergency') return report.status === 'emergency' || report.priority === 10;
     return report.status === active;
@@ -61,9 +66,12 @@ export function AdminApp() {
               <h1 style={{ color: '#F0F4FF', fontWeight: 900, fontSize: 20 }}>KMC Admin Panel</h1>
               <p style={{ color: '#8BA3C7', fontSize: 13 }}>{profile?.phone ?? 'Authority Console'}</p>
             </div>
-            <button onClick={signOut} className="rounded-xl p-3" style={{ background: 'rgba(255,59,59,0.1)', color: '#FF3B3B' }}>
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-2">
+              <NotificationBell onOpenHistory={() => setActive('notifications')} />
+              <button onClick={signOut} className="rounded-xl p-3" style={{ background: 'rgba(255,59,59,0.1)', color: '#FF3B3B' }}>
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className="lg:hidden mt-4 flex gap-2 overflow-x-auto">
             {tabs.map((tab) => (
@@ -82,9 +90,11 @@ export function AdminApp() {
         <div className="p-4 lg:p-6">
           {(active === 'dashboard' || active === 'analytics') && <DashboardScreen reports={reports} />}
           {active === 'emergency' && <EmergencyQueue reports={reports} />}
+          {active === 'alerts' && <AdminEmergencyAlertForm />}
+          {active === 'notifications' && <AdminNotificationPanel reports={reports} />}
           {active === 'heatmap' && <AdminHeatmap reports={reports} />}
           {active === 'users' && <UserManagement />}
-          {!['dashboard', 'analytics', 'emergency', 'heatmap', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
+          {!['dashboard', 'analytics', 'emergency', 'alerts', 'notifications', 'heatmap', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
         </div>
       </main>
     </div>

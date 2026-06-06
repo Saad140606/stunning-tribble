@@ -160,13 +160,27 @@ export function UserManagement() {
                     <select
                       value={user.role}
                       disabled={submittingId === user.id}
-                      onChange={(e) => handleUpdateUser(user.id, { role: e.target.value })}
-                      className="px-2 py-1 rounded outline-none border text-xxs font-semibold"
-                      style={{ background: '#0F2040', borderColor: 'rgba(0,212,255,0.2)', color: '#00D4FF' }}
+                      onChange={(e) => {
+                        const newRole = e.target.value;
+                        if (newRole !== user.role && (newRole === 'admin' || newRole === 'authority')) {
+                          const confirmMsg = `WARNING: Are you sure you want to promote ${user.full_name} to ${newRole.toUpperCase()}?\n\nThis will grant them administrative access to civic console keys.`;
+                          if (!window.confirm(confirmMsg)) {
+                            e.target.value = user.role;
+                            return;
+                          }
+                        }
+                        handleUpdateUser(user.id, { role: newRole });
+                      }}
+                      className="px-2 py-1.5 rounded-md outline-none border text-xxs font-bold transition-all"
+                      style={{
+                        background: user.role === 'admin' ? 'rgba(239,68,68,0.12)' : user.role === 'authority' ? 'rgba(0,212,255,0.12)' : 'rgba(148,163,184,0.1)',
+                        borderColor: user.role === 'admin' ? '#EF4444' : user.role === 'authority' ? '#00D4FF' : 'rgba(148,163,184,0.2)',
+                        color: user.role === 'admin' ? '#EF4444' : user.role === 'authority' ? '#00D4FF' : '#94A3B8'
+                      }}
                     >
-                      <option value="citizen" className="bg-[#0F2040] text-white">Citizen</option>
-                      <option value="authority" className="bg-[#0F2040] text-white">Authority</option>
-                      <option value="admin" className="bg-[#0F2040] text-white">Admin</option>
+                      <option value="citizen" className="bg-[#0F2040] text-[#94A3B8]">Citizen</option>
+                      <option value="authority" className="bg-[#0F2040] text-[#00D4FF]">Authority</option>
+                      <option value="admin" className="bg-[#0F2040] text-[#EF4444]">Admin</option>
                     </select>
                   </td>
                   <td className="p-4">

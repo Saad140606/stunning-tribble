@@ -11,6 +11,7 @@ export interface AdminReport {
   location: string;
   status: AdminStatus;
   submittedBy: string;
+  userId?: string;
   phone?: string;
   createdAt: Date;
   updatedAt?: Date;
@@ -99,6 +100,7 @@ export function useAdminReports() {
           location: item.street ?? `${item.latitude ?? ''}, ${item.longitude ?? ''}`,
           status: item.status ?? 'reported',
           submittedBy: item.userId ? `Citizen #${item.userId}` : 'Citizen',
+          userId: item.userId ? String(item.userId) : undefined,
           phone: item.phone,
           createdAt: toDate(item.createdAt),
           updatedAt: item.updatedAt ? toDate(item.updatedAt) : undefined,

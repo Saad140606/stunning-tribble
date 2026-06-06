@@ -13,11 +13,12 @@ interface JsonDbSchema {
   refresh_tokens: any[];
   complaints: any[];
   complaint_flags: any[];
+  comments?: any[];
 }
 
 // Initialise JSON file if not exists
 if (useLocalJSON && !fs.existsSync(JSON_DB_PATH)) {
-  fs.writeFileSync(JSON_DB_PATH, JSON.stringify({ users: [], refresh_tokens: [], complaints: [], complaint_flags: [] }, null, 2));
+  fs.writeFileSync(JSON_DB_PATH, JSON.stringify({ users: [], refresh_tokens: [], complaints: [], complaint_flags: [], comments: [] }, null, 2));
 }
 
 let pool: Pool | null = null;

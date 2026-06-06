@@ -54,31 +54,25 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
 
 async function attemptTokenRefresh(): Promise<boolean> {
   try {
-    const storedRefresh = localStorage.getItem('refreshToken'); // Fallback if cookie not set/accessible
+    // HttpOnly cookie is sent automatically via credentials: 'include'
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ refreshToken: storedRefresh }),
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (response.ok) {
       const data = await response.json();
       if (data.accessToken) {
         setAccessToken(data.accessToken);
-        if (data.refreshToken) {
-          localStorage.setItem('refreshToken', data.refreshToken);
-        }
         return true;
       }
     }
   } catch (err) {
     console.error('Failed to auto-refresh access token:', err);
   }
-  
-  // Clear tokens if refresh fails
+
+  // Clear access token if refresh fails
   setAccessToken(null);
-  localStorage.removeItem('refreshToken');
   return false;
 }

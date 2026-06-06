@@ -10,9 +10,11 @@ import { LeafletMapScreen } from './components/LeafletMapScreen';
 import { ProfileScreen } from './components/ProfileScreen';
 import { AnalyticsScreen } from './components/AnalyticsScreen';
 import { BottomNavigation } from './components/BottomNavigation';
+import { DesktopNavigation } from './components/DesktopNavigation';
 import DesktopMobileNotice from './components/DesktopMobileNotice';
 import { translations, Language, isRTL, getStoredLanguage, storeLanguage } from './components/translations';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/auth/LoginPage';
 import { RegisterPage } from './pages/auth/RegisterPage';
@@ -24,6 +26,10 @@ import { SOSButton } from './components/SOSButton';
 import { findLocalDuplicate } from './utils/duplicateDetection';
 import { apiFetch } from './services/api';
 import { getQueuedComplaints, queueComplaint, removeQueuedComplaint } from './utils/offlineQueue';
+import { NotificationBell } from './components/notifications/NotificationBell';
+import { EmergencyAlertBanner } from './components/notifications/EmergencyAlertBanner';
+import { NotificationsPage } from './components/notifications/NotificationsPage';
+import { createNotification, updateUserNotificationLocation } from './services/notificationService';
 
 export interface Report {
   id: string;
@@ -73,10 +79,58 @@ export interface User {
   isOnline: boolean;
 }
 
-export type Screen = 'onboarding' | 'home' | 'report' | 'map' | 'profile' | 'analytics';
+export type Screen = 'onboarding' | 'home' | 'report' | 'map' | 'profile' | 'analytics' | 'notifications';
+
+function normalizeStatus(status: unknown): Report['status'] {
+  if (status === 'in_progress') return 'inprogress';
+  if (['reported', 'inprogress', 'resolved', 'emergency', 'flagged'].includes(String(status))) {
+    return status as Report['status'];
+  }
+  return 'reported';
+}
+
+function normalizePriority(priority: unknown, severity = 5): Report['priority'] {
+  if (priority === 'high' || priority === 'medium' || priority === 'low') return priority;
+  const score = Number(priority);
+  if (score >= 8 || severity >= 8) return 'high';
+  if (score >= 4 || severity >= 5) return 'medium';
+  return 'low';
+}
+
+function mapApiComplaintToReport(item: any): Report {
+  const severity = Number(item.severity ?? 5);
+  const lat = Number(item.latitude ?? item.coordinates?.lat ?? 24.8607);
+  const lng = Number(item.longitude ?? item.coordinates?.lng ?? 67.0011);
+  const type = String(item.category ?? item.type ?? 'civic').toLowerCase();
+  return {
+    id: String(item.id),
+    title: item.title ?? `${type} report`,
+    description: item.description ?? 'Civic issue reported through Fix Karachi.',
+    imageUrl: item.imageUrl || item.image_url || '',
+    district: item.district || 'Karachi',
+    ward: item.ward || item.district || 'Karachi',
+    street: item.street || 'Pinned location',
+    coordinates: { lat, lng },
+    distance: 0,
+    timestamp: item.createdAt ? new Date(item.createdAt) : new Date(),
+    aiTag: item.category ?? item.type ?? 'Civic Issue',
+    aiConfidence: Math.min(98, 78 + severity * 2),
+    status: normalizeStatus(item.status),
+    upvotes: Number(item.upvotes ?? item.voteCount ?? 0),
+    comments: Array.isArray(item.comments) ? item.comments : [],
+    severity,
+    type,
+    userId: item.userId ? String(item.userId) : undefined,
+    hasUserUpvoted: Boolean(item.hasUserUpvoted),
+    priority: normalizePriority(item.priority, severity),
+    isDuplicate: Boolean(item.isDuplicate),
+    blurhash: item.blurhash,
+  };
+}
 
 function CitizenApp() {
   const { user: authUser } = useAuth();
+  const { notify } = useNotifications();
   const [isLoading, setIsLoading] = useState(true);
   const [currentScreen, setCurrentScreen] = useState<Screen>('onboarding');
   const [user, setUser] = useState<User>({
@@ -163,14 +217,21 @@ function CitizenApp() {
     };
   }, []);
 
-  // Fetch live reports from the backend
+  useEffect(() => {
+    if (!authUser?.uid) return;
+    updateUserNotificationLocation(authUser.uid, user.coordinates).catch((err) => {
+      console.error('Failed to update notification location:', err);
+    });
+  }, [authUser?.uid, user.coordinates]);
+
+  // Fetch live reports from the backend (single polling loop — no duplicate)
   useEffect(() => {
     const fetchReports = async () => {
       try {
         const response = await apiFetch('/complaints/public');
         if (response.ok) {
           const data = await response.json();
-          setReports(data.complaints);
+          setReports((data.complaints || []).map(mapApiComplaintToReport));
         } else {
           // Fallback to mock data if API fails
           setReports(getMockReports());
@@ -507,27 +568,6 @@ function CitizenApp() {
       },
     ];
 
-  useEffect(() => {
-    const fetchReports = async () => {
-      try {
-        const response = await apiFetch('/complaints/public');
-        if (response.ok) {
-          const data = await response.json();
-          setReports(data.complaints || getMockReports());
-        } else {
-          setReports(getMockReports());
-        }
-      } catch (error) {
-        console.error('Failed to fetch reports:', error);
-        setReports(getMockReports());
-      }
-    };
-
-    fetchReports();
-    const interval = setInterval(fetchReports, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, []);
-
   const handleCompleteOnboarding = () => {
     setHasCompletedOnboarding(true);
     setCurrentScreen('home');
@@ -538,24 +578,102 @@ function CitizenApp() {
     storeLanguage(language);
   };
 
-  const handleUpvote = (reportId: string) => {
-    setReports(prev => prev.map(r => r.id === reportId ? { 
-      ...r, 
-      upvotes: r.upvotes + (r.hasUserUpvoted ? -1 : 1), 
-      hasUserUpvoted: !r.hasUserUpvoted 
+  // FIX 8: Persist upvotes to backend with optimistic update
+  const handleUpvote = async (reportId: string) => {
+    const report = reports.find((item) => item.id === reportId);
+    // Optimistic update
+    setReports(prev => prev.map(r => r.id === reportId ? {
+      ...r,
+      upvotes: r.upvotes + (r.hasUserUpvoted ? -1 : 1),
+      hasUserUpvoted: !r.hasUserUpvoted,
     } : r));
+    if (report?.userId && report.userId !== authUser?.uid && !report.hasUserUpvoted) {
+      createNotification({
+        userId: report.userId,
+        title: 'Your report received an upvote',
+        message: `${report.title} is gaining support from nearby citizens.`,
+        type: 'report_upvoted',
+        relatedReportId: report.id,
+      }).catch((err) => console.error('Failed to create upvote notification:', err));
+    }
+    // Persist to backend
+    try {
+      await apiFetch(`/complaints/${reportId}/upvote`, { method: 'POST' });
+    } catch { /* optimistic already applied */ }
   };
 
-  const handleAddComment = (reportId: string, comment: string) => {
-    setReports(prev => prev.map(r => r.id === reportId ? { 
-      ...r, 
-      comments: [...(r.comments || []), { 
-        id: Date.now().toString(), 
-        text: comment, 
-        timestamp: new Date(), 
-        author: authUser?.email?.split('@')[0] || 'Current User' 
-      }] 
+  // FIX 8: Persist comments to backend with optimistic update
+  const handleAddComment = async (reportId: string, comment: string) => {
+    const newComment = {
+      id: Date.now().toString(),
+      text: comment,
+      timestamp: new Date(),
+      author: authUser?.email?.split('@')[0] || 'Citizen',
+    };
+    setReports(prev => prev.map(r => r.id === reportId ? {
+      ...r, comments: [...(r.comments || []), newComment],
     } : r));
+    try {
+      await apiFetch(`/complaints/${reportId}/comment`, {
+        method: 'POST',
+        body: JSON.stringify({ text: comment }),
+      });
+    } catch { /* optimistic already applied */ }
+  };
+
+  const handleSubmitReport = async (report: Omit<Report, 'id' | 'timestamp' | 'upvotes' | 'comments' | 'distance' | 'hasUserUpvoted'>) => {
+    const duplicate = findLocalDuplicate(reports, { type: report.type, coordinates: report.coordinates }, 75);
+    const payload = {
+      title: report.title,
+      description: report.description,
+      category: report.type,
+      severity: report.severity,
+      status: report.status,
+      latitude: report.coordinates.lat,
+      longitude: report.coordinates.lng,
+      district: report.district,
+      ward: report.ward,
+      street: report.street,
+      imageUrl: report.imageUrl,
+      blurhash: report.blurhash,
+      priority: report.priority === 'high' ? 10 : report.priority === 'medium' ? 5 : 1,
+      isDuplicate: report.isDuplicate || Boolean(duplicate),
+    };
+
+    try {
+      const response = await apiFetch('/complaints', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Report submission failed');
+      const savedReport = mapApiComplaintToReport(data.complaint);
+      setReports((prev) => [savedReport, ...prev.filter((item) => item.id !== savedReport.id)]);
+      setCurrentScreen('home');
+      await notify({
+        title: 'Report submitted successfully',
+        message: `${savedReport.title} has been received and is ready for review.`,
+        type: 'report_created',
+        relatedReportId: savedReport.id,
+      });
+      toast.success(duplicate ? 'Report submitted and marked as possible duplicate' : 'Report submitted');
+    } catch (err) {
+      console.error('Report submit failed, queueing offline:', err);
+      await queueComplaint(payload);
+      const queuedReport: Report = {
+        ...report,
+        id: `queued-${Date.now()}`,
+        timestamp: new Date(),
+        upvotes: 0,
+        comments: [],
+        distance: 0,
+        hasUserUpvoted: false,
+        isDuplicate: payload.isDuplicate,
+      };
+      setReports((prev) => [queuedReport, ...prev]);
+      setCurrentScreen('home');
+      toast.warning('Backend unavailable. Report saved offline and will sync automatically.');
+    }
   };
 
   // Show loading screen first
@@ -577,60 +695,89 @@ function CitizenApp() {
   }
 
   return (
-    <div className="min-h-screen bg-background w-full mx-auto relative mobile-container">
-      <DesktopMobileNotice />
-      {currentScreen !== 'map' && (
-        <div className="pb-20">
-          {currentScreen === 'home' && (
-            <HomeScreen
+    <div className="fk-app-shell mobile-container">
+      <DesktopNavigation
+        currentScreen={currentScreen}
+        onScreenChange={setCurrentScreen}
+        onToggleLanguage={() => handleLanguageChange(user.language === 'en' ? 'ur' : 'en')}
+        languageLabel={user.language === 'en' ? 'اردو' : 'EN'}
+      />
+      <div className="fk-app-content">
+        <DesktopMobileNotice />
+        <EmergencyAlertBanner />
+        <div className="fixed top-3 right-3 z-[9999] fk-mobile-only">
+          <NotificationBell onOpenHistory={() => setCurrentScreen('notifications')} />
+        </div>
+        <div className="fk-page">
+          {currentScreen !== 'map' && (
+            <div className="pb-20">
+              {currentScreen === 'home' && (
+                <HomeScreen
+                  reports={reports}
+                  user={user}
+                  onReportSelect={setSelectedReport}
+                  onUpvote={handleUpvote}
+                  onAddComment={handleAddComment}
+                  selectedReport={selectedReport}
+                  onCloseModal={() => setSelectedReport(null)}
+                  onReportAgain={() => setCurrentScreen('report')}
+                  onLanguageChange={handleLanguageChange}
+                />
+              )}
+
+              {currentScreen === 'analytics' && (
+                <AnalyticsScreen
+                  reports={reports}
+                  user={user}
+                />
+              )}
+
+              {currentScreen === 'report' && (
+                <ReportScreen
+                  user={user}
+                  onSubmit={handleSubmitReport}
+                  onCancel={() => setCurrentScreen('home')}
+                />
+              )}
+
+              {currentScreen === 'notifications' && (
+                <NotificationsPage />
+              )}
+
+              {/* FIX 1D: Filter by authUser?.uid (not hardcoded 'current-user') */}
+              {currentScreen === 'profile' && (
+                <ProfileScreen
+                  reports={reports.filter(r => r.userId === authUser?.uid)}
+                  user={user}
+                  onLanguageChange={handleLanguageChange}
+                  onToggleOnline={() => setUser(prev => ({ ...prev, isOnline: !prev.isOnline }))}
+                  onReportAgain={() => setCurrentScreen('report')}
+                />
+              )}
+            </div>
+          )}
+
+          {currentScreen === 'map' && (
+            <LeafletMapScreen
               reports={reports}
               user={user}
               onReportSelect={setSelectedReport}
               onUpvote={handleUpvote}
-              onAddComment={handleAddComment}
-              selectedReport={selectedReport}
-              onCloseModal={() => setSelectedReport(null)}
-              onReportAgain={() => setCurrentScreen('report')}
-              onLanguageChange={handleLanguageChange}
-            />
-          )}
-
-          {currentScreen === 'analytics' && (
-            <AnalyticsScreen
-              reports={reports}
-              user={user}
-            />
-          )}
-
-          {currentScreen === 'profile' && (
-            <ProfileScreen
-              reports={reports.filter(r => r.userId === 'current-user')}
-              user={user}
-              onLanguageChange={handleLanguageChange}
-              onToggleOnline={() => setUser(prev => ({ ...prev, isOnline: !prev.isOnline }))}
-              onReportAgain={() => setCurrentScreen('report')}
             />
           )}
         </div>
-      )}
 
-      {currentScreen === 'map' && (
-        <LeafletMapScreen
-          reports={reports}
-          user={user}
-          onReportSelect={setSelectedReport}
-          onUpvote={handleUpvote}
-        />
-      )}
+        <div className="fk-mobile-only">
+          <BottomNavigation
+            currentScreen={currentScreen}
+            onScreenChange={setCurrentScreen}
+            language={user.language}
+          />
+        </div>
 
-      <BottomNavigation
-        currentScreen={currentScreen}
-        onScreenChange={setCurrentScreen}
-        language={user.language}
-      />
-
-      <SOSButton />
-      <Toaster />
+        <SOSButton />
+        <Toaster />
+      </div>
     </div>
   );
 }
@@ -639,7 +786,8 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <NotificationProvider>
+          <Routes>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -661,7 +809,8 @@ export default function App() {
               </ProtectedRoute>
             )}
           />
-        </Routes>
+          </Routes>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

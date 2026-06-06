@@ -127,6 +127,7 @@ export function ReportsTable({
         status: changes.status,
         changedBy: profile?.uid ?? 'admin-demo',
         note,
+        reportOwnerId: report.userId,
       });
     }
   };

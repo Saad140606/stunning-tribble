@@ -436,3 +436,69 @@ export const bulkUpdateComplaints = async (req: AuthenticatedRequest, res: Respo
     return res.status(500).json({ error: 'Server error / سرور کی خرابی' });
   }
 };
+
+// FIX 8: Upvote a complaint (toggle upvote, persist to DB)
+export const upvoteComplaint = async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized / غیر مجاز' });
+  }
+  const { id } = req.params;
+  try {
+    if (db.isPg) {
+      await db.query(
+        'UPDATE complaints SET upvotes = COALESCE(upvotes, 0) + 1, updated_at = NOW() WHERE id = $1',
+        [Number(id)]
+      );
+      return res.json({ success: true });
+    }
+    // Local JSON fallback
+    const data = db.readLocal();
+    const target = data.complaints.find((c: any) => String(c.id) === String(id));
+    if (target) {
+      target.upvotes = (target.upvotes || 0) + 1;
+      target.updated_at = new Date().toISOString();
+      db.writeLocal(data);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Upvote complaint error:', err);
+    return res.status(500).json({ error: 'Failed to upvote / اپ ووٹ ناکام رہا' });
+  }
+};
+
+// FIX 8: Add a comment to a complaint
+export const addComment = async (req: AuthenticatedRequest, res: Response) => {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Unauthorized / غیر مجاز' });
+  }
+  const { id } = req.params;
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ error: 'Comment text is required / تبصرے کا متن درکار ہے' });
+  }
+  try {
+    if (db.isPg) {
+      const result = await db.query(
+        'INSERT INTO comments (complaint_id, user_id, text, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *',
+        [Number(id), req.user.id, text]
+      );
+      return res.status(201).json({ comment: result.rows[0] });
+    }
+    // Local JSON fallback
+    const data = db.readLocal();
+    if (!data.comments) data.comments = [];
+    const newComment = {
+      id: data.comments.length + 1,
+      complaint_id: Number(id),
+      user_id: req.user.id,
+      text,
+      created_at: new Date().toISOString(),
+    };
+    data.comments.push(newComment);
+    db.writeLocal(data);
+    return res.status(201).json({ comment: newComment });
+  } catch (err) {
+    console.error('Add comment error:', err);
+    return res.status(500).json({ error: 'Failed to add comment / تبصرہ شامل کرنے میں ناکامی' });
+  }
+};

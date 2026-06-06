@@ -4,8 +4,11 @@ import * as jwt from 'jsonwebtoken';
 import { db } from '../config/db';
 import { AuthenticatedRequest } from '../middleware/auth.middleware';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-for-dev';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'fallback-refresh-secret-for-dev';
+if (!process.env.JWT_SECRET || !process.env.JWT_REFRESH_SECRET) {
+  throw new Error('FATAL: JWT_SECRET and JWT_REFRESH_SECRET must be set in environment');
+}
+const JWT_SECRET = process.env.JWT_SECRET;
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const JWT_ACCESS_EXPIRATION = process.env.JWT_ACCESS_EXPIRATION || '15m';
 const JWT_REFRESH_EXPIRATION = process.env.JWT_REFRESH_EXPIRATION || '7d';
 
@@ -37,7 +40,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters / پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے' });
   }
 
-  const assignedRole = role === 'admin' ? 'admin' : 'citizen'; // Accept requested role
+  const assignedRole = 'citizen'; // Always register as citizen — promotion via admin panel only
 
   try {
     // Check if user exists
