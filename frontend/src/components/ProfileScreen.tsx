@@ -92,79 +92,38 @@ export function ProfileScreen({
 
   const userInitials = profile?.full_name 
     ? profile.full_name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2)
-    : 'KC';
+    : user.name.substring(0, 2).toUpperCase();
 
   return (
-    <motion.div className="pb-12" style={{ background: 'transparent' }} variants={pageVariants} initial="hidden" animate="show">
-      {/* Header */}
-      <div
-        className="sticky top-0 z-40 px-6 py-4"
-        style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-      >
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontWeight: 800, fontSize: '22px', color: '#F0F4FF' }}>
-          {t.profile}
-        </h1>
-      </div>
-
+    <motion.div className="pb-12 bg-[#0e1417] min-h-screen pt-8" variants={pageVariants} initial="hidden" animate="show">
       <motion.div className="p-6 max-w-7xl mx-auto" variants={itemVariants}>
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column - Card & Settings (Span 5) */}
-          <div className="lg:col-span-5 space-y-6">
-            {/* User Info Card */}
-            <motion.div
-              className="rounded-2xl p-6 relative overflow-hidden"
-              style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.08)' }}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35 }}
-            >
-              <div className="flex items-center gap-4 mb-6">
-                <div
-                  className="w-16 h-16 rounded-full flex items-center justify-center relative group"
-                  style={{
-                    background: 'linear-gradient(135deg, #00D4FF, #0088CC)',
-                    boxShadow: '0 0 24px rgba(0,212,255,0.2)',
-                  }}
-                >
-                  <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: '22px', fontWeight: 800, color: '#0A1628' }}>
+        
+        {/* Welcome Banner */}
+        <div className="bg-[#1a2123]/80 backdrop-blur-xl border border-white/5 rounded-3xl p-8 mb-8 relative overflow-hidden shadow-2xl">
+          <div className="absolute right-0 top-0 w-64 h-64 bg-[#00d4ff]/10 rounded-full blur-3xl"></div>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-black text-[#e8f4f8] mb-2 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                {user.language === 'ur' ? 'خوش آمدید' : 'Welcome'}, <span className="text-[#00d4ff]">{profile?.full_name?.split(' ')[0] ?? 'Citizen'}</span>
+              </h1>
+              <p className="text-slate-300 text-lg">Here's your civic engagement overview for {profile?.city ?? user.district}.</p>
+            </div>
+            <div className="flex items-center gap-4">
+               <div className="w-20 h-20 rounded-full flex items-center justify-center relative bg-gradient-to-br from-[#00d4ff] to-[#0088cc] shadow-[0_0_24px_rgba(0,212,255,0.3)]">
+                  <span style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: '28px', fontWeight: 800, color: '#0A1628' }}>
                     {userInitials}
                   </span>
-                  
-                  {/* Verified Badge */}
                   <div className="absolute -bottom-1 -right-1 bg-[#00C896] text-[#0A1628] rounded-full p-1 border-2 border-[#0F2040]">
-                    <Award className="w-3.5 h-3.5" />
+                    <Award className="w-4 h-4" />
                   </div>
                 </div>
-                
-                <div>
-                  <h2 style={{ fontSize: '20px', fontWeight: 700, color: '#F0F4FF' }}>
-                    {profile?.full_name ?? 'Karachi Citizen'}
-                  </h2>
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <MapPin className="w-3.5 h-3.5" style={{ color: '#00D4FF' }} />
-                    <span style={{ fontSize: '13px', color: '#8BA3C7' }}>
-                      {profile?.city ?? t.karachiCitizen} • {profile?.phone ?? 'Citizen'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+            </div>
+          </div>
+        </div>
 
-              {/* Stats Row */}
-              <div className="grid grid-cols-3 gap-3 bg-[rgba(10,22,40,0.4)] p-4 rounded-xl border border-[rgba(0,212,255,0.04)]">
-                {[
-                  { value: userReports.length, label: t.reportsSubmitted },
-                  { value: totalUpvotes, label: t.verified },
-                  { value: resolvedCount, label: t.resolved },
-                ].map((stat) => (
-                  <div key={stat.label} className="text-center">
-                    <div style={{ fontFamily: "'JetBrains Mono'", fontSize: '22px', fontWeight: 700, color: '#00D4FF' }}>
-                      {stat.value}
-                    </div>
-                    <div style={{ fontSize: '10px', color: '#4A6080', marginTop: '2px', fontWeight: 600 }}>{stat.label}</div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+          {/* Left Column - Card & Settings (Span 4) */}
+          <div className="lg:col-span-4 space-y-6">
 
             {/* Account Settings Menu */}
             <div className="rounded-2xl p-6 space-y-5" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.08)' }}>
@@ -273,19 +232,42 @@ export function ProfileScreen({
             </motion.button>
           </div>
 
-          {/* Right Column - Reports Feed (Span 7) */}
-          <div className="lg:col-span-7">
+          {/* Right Column - Stats Grid & Reports Feed (Span 8) */}
+          <div className="lg:col-span-8 flex flex-col gap-8">
+            
+            {/* Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { value: userReports.length, label: t.reportsSubmitted, icon: MapPin, color: '#00d4ff' },
+                { value: resolvedCount, label: t.resolved, icon: Shield, color: '#00c896' },
+                { value: totalUpvotes, label: 'Impact Score', icon: Award, color: '#ffb800' },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-[#1a2123]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 relative overflow-hidden group hover:bg-[#1a2123]/80 transition-all duration-500">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#00d4ff]/10 to-transparent rounded-bl-full opacity-50"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-slate-300 font-medium text-sm tracking-wide uppercase">{stat.label}</h3>
+                      <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10" style={{ color: stat.color }}>
+                        <stat.icon className="w-5 h-5" />
+                      </div>
+                    </div>
+                    <div className="text-4xl font-black text-[#e8f4f8] tracking-tighter" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{stat.value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
             <motion.div
-              className="rounded-2xl p-6"
-              style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.08)', minHeight: '400px' }}
+              className="rounded-3xl p-6 bg-[#1a2123]/60 backdrop-blur-xl border border-white/5"
+              style={{ minHeight: '400px' }}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.14, duration: 0.35 }}
             >
               <div className="flex items-center justify-between mb-6">
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: '#F0F4FF' }}>{t.myReports}</h3>
+                <h3 className="text-xl font-bold text-[#e8f4f8]">Recent Activity</h3>
                 
-                <span className="text-xs text-[#4A6080] font-mono bg-[rgba(255,255,255,0.03)] px-2.5 py-1 rounded-full border border-[rgba(255,255,255,0.05)]">
+                <span className="text-xs text-[#00d4ff] font-mono bg-[#00d4ff]/10 px-3 py-1.5 rounded-full border border-[#00d4ff]/20 font-bold tracking-wide">
                   {userReports.length} {user.language === 'ur' ? 'رپورٹس' : 'Reports'}
                 </span>
               </div>
@@ -296,40 +278,46 @@ export function ProfileScreen({
                   return (
                     <motion.div
                       key={report.id}
-                      className="rounded-xl p-4 transition-all hover:translate-x-1"
-                      style={{ background: '#0A1628', border: '1px solid rgba(0,212,255,0.06)' }}
-                      whileHover={{ borderColor: 'rgba(0,212,255,0.15)' }}
+                      className="rounded-2xl p-5 transition-all hover:bg-white/5 mb-4 group cursor-pointer"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <h4 className="flex-1 font-semibold leading-tight text-[#F0F4FF]" style={{ fontSize: '14px' }}>
-                          {report.title}
-                        </h4>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 text-slate-300 group-hover:text-[#00d4ff] group-hover:bg-[#00d4ff]/10 transition-colors">
+                            <MapPin className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-[#e8f4f8] text-base leading-tight">
+                              {report.title}
+                            </h4>
+                            <p className="text-xs text-slate-400 mt-1">{report.ward}</p>
+                          </div>
+                        </div>
                         <span
-                          className="px-2.5 py-0.5 rounded-full text-xs font-semibold ml-3 whitespace-nowrap"
-                          style={{ background: status.bg, color: status.color }}
+                          className="px-3 py-1 rounded-full text-xs font-bold whitespace-nowrap border"
+                          style={{ background: status.bg, color: status.color, borderColor: `${status.color}30` }}
                         >
                           {status.text}
                         </span>
                       </div>
-                      <p style={{ fontSize: '13px', color: '#8BA3C7' }} className="line-clamp-2 mb-3">
+                      <p className="text-sm text-slate-300 mb-4 line-clamp-2">
                         {report.description}
                       </p>
                       
-                      <div className="flex items-center justify-between border-t border-[rgba(0,212,255,0.04)] pt-3" style={{ fontSize: '11px', color: '#4A6080' }}>
-                        <div className="flex items-center gap-3">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3.5 h-3.5" />
-                            <span>{report.ward}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-between border-t border-white/5 pt-4">
+                        <div className="flex items-center gap-4 text-xs text-slate-400">
+                          <div className="flex items-center gap-1.5">
                             <Clock className="w-3.5 h-3.5" />
                             <span>{formatTimeAgo(report.timestamp)}</span>
                           </div>
+                          <div className="flex items-center gap-1.5">
+                            <Heart className="w-3.5 h-3.5" />
+                            <span>{report.upvotes} Upvotes</span>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1 text-[#00D4FF] bg-[rgba(0,212,255,0.05)] px-2 py-0.5 rounded-md border border-[rgba(0,212,255,0.08)]">
-                          <Heart className="w-3 h-3" fill="#00D4FF" />
-                          <span style={{ fontFamily: "'JetBrains Mono'", fontWeight: 700 }}>{report.upvotes}</span>
-                        </div>
+                        <button className="text-[#00d4ff] text-sm font-bold hover:text-[#00ff94] transition-colors">
+                          View Details
+                        </button>
                       </div>
                     </motion.div>
                   );

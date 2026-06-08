@@ -115,23 +115,34 @@ function TopBar({
   currentScreen: Screen;
   onOpenNotifications: () => void;
 }) {
+  const { profile } = useAuth();
+  const initials = profile?.full_name
+    ? profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'FK';
+
   return (
-    <header className="fk-topbar">
-      <div className="fk-topbar-breadcrumb">
-        <span>Fix Karachi</span>
-        <span>/</span>
-        <strong>{screenLabels[currentScreen]}</strong>
+    <header className="sticky top-0 w-full z-50 bg-[#0f2040]/70 backdrop-blur-xl border-b border-white/10 shadow-2xl h-20 px-4 md:px-8 flex justify-between items-center max-w-full mx-auto" style={{ left: 0 }}>
+      <div className="flex items-center gap-8 md:pl-0 pl-12"> {/* pl-12 on mobile to account for hamburger if any */}
+        <span className="font-headline-lg text-xl md:text-2xl font-black text-[#00d4ff] tracking-tighter lg:hidden" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Fix Karachi</span>
+        <nav className="hidden md:flex gap-6">
+          <span className="text-on-surface-variant font-medium text-sm capitalize">{screenLabels[currentScreen]}</span>
+        </nav>
       </div>
-      <div className="fk-topbar-search">
-        <Search className="w-4 h-4" />
-        <input placeholder="Search reports, districts, IDs" />
+      <div className="flex items-center gap-4">
+        <div className="hidden md:flex relative">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input 
+            placeholder="Search reports..." 
+            className="bg-[#1a2123]/80 border border-white/10 rounded-full py-2 pl-10 pr-4 text-sm text-[#e8f4f8] focus:outline-none focus:border-[#00d4ff] transition-all w-64"
+          />
+        </div>
+        <button className="p-2 rounded-full hover:bg-white/5 transition-all duration-300 active:scale-95 text-[#00d4ff]" onClick={onOpenNotifications} aria-label="Notifications">
+          <Bell className="w-5 h-5" />
+        </button>
+        <div className="h-10 w-10 rounded-full border border-[#00d4ff]/30 overflow-hidden flex items-center justify-center bg-[#00d4ff]/10 text-[#00d4ff] font-bold text-sm">
+          {initials}
+        </div>
       </div>
-      <button className="fk-topbar-icon" onClick={onOpenNotifications} aria-label="Notifications">
-        <Bell className="w-4 h-4" />
-      </button>
-      <button className="fk-topbar-avatar" aria-label="Profile">
-        <UserIcon className="w-4 h-4" />
-      </button>
     </header>
   );
 }
@@ -146,7 +157,7 @@ function DesktopLayout({
   children,
 }: AppLayoutProps) {
   return (
-    <div className="fk-app-shell fk-app-shell-desktop">
+    <div className="fk-app-shell fk-app-shell-desktop bg-[#0e1417] min-h-screen">
       <DesktopNavigation
         currentScreen={currentScreen}
         onScreenChange={onScreenChange}
@@ -156,7 +167,9 @@ function DesktopLayout({
       />
       <div className={`fk-app-content ${selectedReport ? 'fk-has-right-panel' : ''}`}>
         <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
-        {children}
+        <div className="pt-8 px-6 pb-20">
+          {children}
+        </div>
       </div>
     </div>
   );
@@ -171,7 +184,8 @@ function TabletLayout({
   children,
 }: AppLayoutProps) {
   return (
-    <div className="fk-app-shell fk-app-shell-tablet">
+    <div className="fk-app-shell fk-app-shell-tablet bg-[#0e1417] min-h-screen">
+      <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
       <DesktopNavigation
         currentScreen={currentScreen}
         onScreenChange={onScreenChange}
@@ -179,8 +193,7 @@ function TabletLayout({
         languageLabel={languageLabel}
         isOnline={user.isOnline}
       />
-      <div className="fk-app-content">
-        <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
+      <div className="fk-app-content pt-20">
         {children}
       </div>
     </div>
@@ -189,20 +202,18 @@ function TabletLayout({
 
 function MobileLayout({ currentScreen, user, onScreenChange, children }: AppLayoutProps) {
   return (
-    <div className="fk-app-shell fk-app-shell-mobile">
-      <div className="fk-app-content">
-        <div className="fixed top-3 right-3 z-[9999] fk-mobile-only">
-          <NotificationBell onOpenHistory={() => onScreenChange('notifications')} />
-        </div>
+    <div className="fk-app-shell fk-app-shell-mobile bg-[#0e1417] min-h-screen">
+      <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
+      <div className="fk-app-content pt-20 pb-20">
         {children}
-        <div className="fk-mobile-only">
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f2040]/80 backdrop-blur-2xl border-t border-white/5">
           <BottomNavigation
             currentScreen={currentScreen}
             onScreenChange={onScreenChange}
             language={user.language}
           />
         </div>
-        <div className="fk-mobile-only">
+        <div className="fixed bottom-20 right-4 z-[40]">
           <SOSButton />
         </div>
       </div>
@@ -833,7 +844,7 @@ function CitizenApp() {
         message: `${savedReport.title} has been received and is ready for review.`,
         type: 'report_created',
         relatedReportId: savedReport.id,
-      });
+      }).catch(err => console.warn('Notification failed, but report succeeded:', err));
       toast.success(duplicate ? 'Report submitted and marked as possible duplicate' : 'Report submitted');
     } catch (err) {
       console.error('Report submit failed, queueing offline:', err);

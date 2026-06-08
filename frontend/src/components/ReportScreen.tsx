@@ -218,31 +218,29 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
   return (
     <div className="pb-12" style={{ background: 'transparent' }}>
       {/* Header */}
-      <div
-        className="sticky top-0 z-40 px-6 py-4"
-        style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.08)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-      >
+      <div className="sticky top-0 z-40 px-6 py-4 bg-[#0e1417]/90 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <button onClick={onCancel} className="p-2 rounded-lg" style={{ background: 'rgba(0,212,255,0.08)' }}>
-              <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
+            <button onClick={onCancel} className="p-2 rounded-full hover:bg-white/5 transition-colors">
+              <X className="w-5 h-5 text-slate-400 hover:text-white" />
             </button>
-            <h1 style={{ fontFamily: "'Plus Jakarta Sans'", fontSize: '20px', fontWeight: 800, color: '#F0F4FF' }}>
+            <h1 className="text-xl md:text-2xl font-black text-[#e8f4f8] tracking-tighter" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
               {t.reportTitle}
             </h1>
           </div>
 
           {/* Stepper bar for desktop/mobile */}
-          <div className="flex items-center gap-6 md:w-80">
+          <div className="flex items-center gap-2 md:gap-4 md:w-96">
             {steps.map((label, i) => (
-              <div key={label} className="flex-1 flex flex-col gap-1.5">
+              <div key={label} className="flex-1 flex flex-col gap-2 relative">
                 <div
-                  className="h-1 rounded-full transition-all duration-500"
+                  className="h-1.5 rounded-full transition-all duration-500"
                   style={{
-                    background: i < step ? '#00D4FF' : i === step - 1 ? '#00D4FF' : 'rgba(0,212,255,0.1)',
+                    background: i < step ? '#00d4ff' : i === step - 1 ? '#00d4ff' : 'rgba(255,255,255,0.1)',
+                    boxShadow: i <= step - 1 ? '0 0 10px rgba(0,212,255,0.5)' : 'none'
                   }}
                 />
-                <span className="hidden md:inline-block text-[11px] font-semibold text-right" style={{ color: i < step ? '#00D4FF' : '#4A6080' }}>
+                <span className="hidden md:block text-xs font-bold uppercase tracking-wider text-center" style={{ color: i <= step - 1 ? '#00d4ff' : '#4A6080' }}>
                   {label}
                 </span>
               </div>
@@ -255,7 +253,8 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
       <div className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Left Column: Form Steps (Span 7) */}
-          <div className="lg:col-span-7 bg-[#0F2040] border border-[rgba(0,212,255,0.08)] rounded-2xl p-6 shadow-xl">
+          <div className="lg:col-span-7 bg-[#1a2123]/80 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+            <div className="absolute -right-32 -top-32 w-64 h-64 bg-[#00d4ff]/10 rounded-full blur-3xl"></div>
             <AnimatePresence mode="wait">
               {/* Step 1: Details */}
               {step === 1 && (
@@ -269,31 +268,35 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
                 >
                   {/* Category Grid */}
                   <div>
-                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '12px' }}>
+                    <label className="text-sm font-bold text-[#e8f4f8] block mb-3 uppercase tracking-wide">
                       {t.reportCategory}
                     </label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                       {categories.map((cat) => {
                         const isSelected = category === cat.value;
                         const CategoryIcon = cat.LucideIcon;
                         return (
                           <motion.button
                             key={cat.value}
-                            className="flex flex-col items-center gap-2.5 p-4 rounded-xl transition-all"
+                            className="flex flex-col items-center gap-3 p-4 rounded-2xl transition-all border"
                             style={{
-                              background: isSelected ? `${cat.color}15` : '#0A1628',
-                              border: `2px solid ${isSelected ? cat.color : 'rgba(0,212,255,0.08)'}`,
+                              background: isSelected ? 'rgba(0,212,255,0.1)' : 'rgba(255,255,255,0.02)',
+                              border: isSelected ? '1px solid rgba(0,212,255,0.3)' : '1px solid rgba(255,255,255,0.05)',
+                              boxShadow: isSelected ? '0 0 15px rgba(0,212,255,0.2)' : 'none'
                             }}
                             onClick={() => setCategory(cat.value)}
                             whileTap={{ scale: 0.96 }}
                           >
                             <div
-                              className="w-10 h-10 rounded-full flex items-center justify-center"
-                              style={{ background: `${cat.color}20`, border: `1px solid ${cat.color}40` }}
+                              className="w-12 h-12 rounded-full flex items-center justify-center border"
+                              style={{ 
+                                background: isSelected ? 'rgba(0,212,255,0.2)' : 'rgba(255,255,255,0.05)', 
+                                border: isSelected ? '1px solid rgba(0,212,255,0.5)' : '1px solid rgba(255,255,255,0.1)' 
+                              }}
                             >
-                              <CategoryIcon className="w-5 h-5" style={{ color: cat.color }} />
+                              <CategoryIcon className="w-6 h-6" style={{ color: isSelected ? '#00d4ff' : '#8ba3c7' }} />
                             </div>
-                            <span style={{ fontSize: '11px', fontWeight: 600, color: isSelected ? cat.color : '#8BA3C7' }}>
+                            <span className="text-xs font-bold tracking-wider uppercase" style={{ color: isSelected ? '#00d4ff' : '#8ba3c7' }}>
                               {t[cat.value as keyof typeof t] as string}
                             </span>
                           </motion.button>
@@ -304,20 +307,20 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
 
                   {/* Title Input */}
                   <div>
-                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
+                    <label className="text-sm font-bold text-[#e8f4f8] block mb-2">
                       {user.language === 'ur' ? 'مسئلے کا عنوان' : 'Issue Title'}
                     </label>
                     <input
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder={t.describeIssue}
-                      className="w-full fk-input"
+                      className="w-full bg-[#0e1417] border border-white/10 rounded-xl px-4 py-3 text-[#e8f4f8] placeholder-slate-500 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff] transition-all"
                     />
                   </div>
 
                   {/* Description */}
                   <div>
-                    <label style={{ fontSize: '14px', fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: '8px' }}>
+                    <label className="text-sm font-bold text-[#e8f4f8] block mb-2">
                       {t.addDescription}
                     </label>
                     <textarea
@@ -325,7 +328,7 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder={t.addDescription}
                       rows={4}
-                      className="w-full fk-input resize-none"
+                      className="w-full bg-[#0e1417] border border-white/10 rounded-xl px-4 py-3 text-[#e8f4f8] placeholder-slate-500 focus:outline-none focus:border-[#00d4ff] focus:ring-1 focus:ring-[#00d4ff] transition-all resize-none"
                     />
                   </div>
 
@@ -365,11 +368,11 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
                   <motion.button
                     onClick={() => setStep(2)}
                     disabled={!category}
-                    className="w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all"
+                    className="w-full py-4 rounded-xl flex items-center justify-center gap-2 font-bold transition-all text-lg"
                     style={{
-                      background: category ? '#00D4FF' : 'rgba(0,212,255,0.15)',
-                      color: category ? '#0A1628' : '#4A6080',
-                      boxShadow: category ? '0 4px 14px rgba(0,212,255,0.2)' : 'none',
+                      background: category ? 'linear-gradient(to right, #00d4ff, #0099cc)' : 'rgba(255,255,255,0.05)',
+                      color: category ? '#0e1417' : '#4A6080',
+                      boxShadow: category ? '0 0 20px rgba(0,212,255,0.4)' : 'none',
                     }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -632,11 +635,11 @@ export function ReportScreen({ user, layoutMode = 'mobile', onSubmit, onCancel }
 
           {/* Right Column: Live Mockup Card Preview (Span 5) (Visible only on Desktop) */}
           <div className="hidden lg:block lg:col-span-5 sticky top-28">
-            <div className="rounded-2xl p-6 border border-[rgba(0,212,255,0.12)] bg-gradient-to-br from-[#0F2040] to-[#0A1628] shadow-2xl relative overflow-hidden">
+            <div className="bg-[#1a2123]/80 backdrop-blur-xl border border-white/5 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[rgba(0,212,255,0.06)] rounded-full blur-3xl pointer-events-none" />
 
-              <h3 className="text-xs font-bold uppercase tracking-wider text-[#00D4FF] mb-4 flex items-center gap-2">
-                <Sparkles className="w-3.5 h-3.5 text-[#00D4FF]" />
+              <h3 className="text-sm font-bold uppercase tracking-wider text-[#00D4FF] mb-6 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-[#00D4FF]" />
                 Live Citizen Card Preview
               </h3>
 

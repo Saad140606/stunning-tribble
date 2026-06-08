@@ -42,52 +42,165 @@ export function AdminApp() {
   };
 
   return (
-    <div className="min-h-screen lg:flex" style={{ background: 'linear-gradient(160deg, #081223 0%, #0A1628 45%, #0D1F3C 100%)' }}>
-      <aside className="hidden lg:block w-64 p-4" style={{ background: 'rgba(8, 18, 35, 0.95)', borderRight: '1px solid rgba(0,212,255,0.1)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}>
-        <h1 className="mb-6" style={{ color: '#F0F4FF', fontSize: 22, fontWeight: 900 }}>KMC Admin Panel</h1>
-        <nav className="space-y-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActive(tab.id)}
-              className="w-full flex items-center gap-3 rounded-xl px-3 py-3 text-left"
-              style={{ background: active === tab.id ? 'rgba(0,212,255,0.12)' : 'transparent', color: active === tab.id ? '#00D4FF' : '#8BA3C7' }}
-            >
-              <tab.icon className="w-4 h-4" /> {tab.label}
-            </button>
-          ))}
+    <div className="min-h-screen lg:flex" style={{ background: 'linear-gradient(160deg, #080e12 0%, #0e1417 45%, #121c20 100%)' }}>
+      {/* Sidebar */}
+      <aside
+        className="hidden lg:flex lg:flex-col w-[272px] p-5"
+        style={{
+          background: 'rgba(26, 33, 35, 0.85)',
+          borderRight: '1px solid rgba(168, 232, 255, 0.07)',
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+        }}
+      >
+        {/* Brand */}
+        <div className="mb-8">
+          <h1
+            style={{
+              color: '#dde3e7',
+              fontSize: 20,
+              fontWeight: 700,
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Fix Karachi
+          </h1>
+          <p
+            style={{
+              color: '#859398',
+              fontSize: 11,
+              fontFamily: "'JetBrains Mono', monospace",
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              marginTop: 4,
+            }}
+          >
+            COMMAND CENTER
+          </p>
+        </div>
+
+        {/* Navigation */}
+        <nav className="space-y-1 flex-1">
+          {tabs.map((tab) => {
+            const isActive = active === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActive(tab.id)}
+                className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition-all duration-200"
+                style={{
+                  background: isActive
+                    ? 'rgba(0, 212, 255, 0.1)'
+                    : 'transparent',
+                  color: isActive ? '#a8e8ff' : '#859398',
+                  borderLeft: isActive ? '2px solid #00d4ff' : '2px solid transparent',
+                  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  fontWeight: isActive ? 600 : 400,
+                }}
+              >
+                <tab.icon className="w-4 h-4" style={{ opacity: isActive ? 1 : 0.7 }} />
+                {tab.label}
+              </button>
+            );
+          })}
         </nav>
+
+        {/* Sidebar footer */}
+        <div
+          className="pt-4 mt-4"
+          style={{ borderTop: '1px solid rgba(168, 232, 255, 0.06)' }}
+        >
+          <button
+            onClick={signOut}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200"
+            style={{
+              color: '#ffb4ab',
+              fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+            }}
+          >
+            <LogOut className="w-4 h-4" /> Sign Out
+          </button>
+        </div>
       </aside>
 
-      <main className="flex-1">
-        <header className="sticky top-0 z-30 p-4" style={{ background: 'rgba(10,22,40,0.97)', borderBottom: '1px solid rgba(0,212,255,0.1)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}>
+      {/* Main Content */}
+      <main className="flex-1 min-w-0">
+        {/* Top Header */}
+        <header
+          className="sticky top-0 z-30 px-5 py-4"
+          style={{
+            background: 'rgba(14, 20, 23, 0.92)',
+            borderBottom: '1px solid rgba(168, 232, 255, 0.06)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+          }}
+        >
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h1 style={{ color: '#F0F4FF', fontWeight: 900, fontSize: 20 }}>KMC Admin Panel</h1>
-              <p style={{ color: '#8BA3C7', fontSize: 13 }}>{profile?.phone ?? 'Authority Console'}</p>
+              <h1
+                style={{
+                  color: '#dde3e7',
+                  fontWeight: 700,
+                  fontSize: 18,
+                  fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                  letterSpacing: '-0.01em',
+                }}
+              >
+                Fix Karachi — Admin
+              </h1>
+              <p
+                style={{
+                  color: '#859398',
+                  fontSize: 12,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  marginTop: 2,
+                }}
+              >
+                {profile?.phone ?? 'Authority Console'}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <NotificationBell onOpenHistory={() => setActive('notifications')} />
-              <button onClick={signOut} className="rounded-xl p-3" style={{ background: 'rgba(255,59,59,0.1)', color: '#FF3B3B' }}>
+              <button
+                onClick={signOut}
+                className="lg:hidden rounded-lg p-2.5 transition-colors"
+                style={{
+                  background: 'rgba(255, 180, 171, 0.08)',
+                  color: '#ffb4ab',
+                }}
+              >
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
           </div>
-          <div className="lg:hidden mt-4 flex gap-2 overflow-x-auto">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActive(tab.id)}
-                className="shrink-0 rounded-full px-3 py-2 text-xs"
-                style={{ background: active === tab.id ? '#00D4FF' : '#0F2040', color: active === tab.id ? '#0A1628' : '#8BA3C7' }}
-              >
-                {tab.label}
-              </button>
-            ))}
+
+          {/* Mobile tab bar */}
+          <div className="lg:hidden mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {tabs.map((tab) => {
+              const isActive = active === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActive(tab.id)}
+                  className="shrink-0 rounded-full px-3.5 py-2 text-xs font-medium transition-all duration-200"
+                  style={{
+                    background: isActive ? '#00d4ff' : 'rgba(26, 33, 35, 0.8)',
+                    color: isActive ? '#0e1417' : '#859398',
+                    border: isActive ? 'none' : '1px solid rgba(168, 232, 255, 0.08)',
+                    fontFamily: "'Plus Jakarta Sans', system-ui, sans-serif",
+                    fontWeight: isActive ? 700 : 500,
+                  }}
+                >
+                  {tab.label}
+                </button>
+              );
+            })}
           </div>
         </header>
 
-        <div className="p-4 lg:p-6">
+        {/* Page Content */}
+        <div className="p-5 lg:p-7">
           {(active === 'dashboard' || active === 'analytics') && <DashboardScreen reports={reports} />}
           {active === 'emergency' && <EmergencyQueue reports={reports} />}
           {active === 'alerts' && <AdminEmergencyAlertForm />}

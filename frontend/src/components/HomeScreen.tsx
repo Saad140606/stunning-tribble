@@ -161,26 +161,60 @@ export function HomeScreen({
     ).sort((a, b) => b[1] - a[1]).slice(0, 5);
 
     return (
-      <div className="fk-desktop-home">
-        <div className="fk-desktop-kpi-grid">
+      <div className="fk-desktop-home bg-[#0e1417] min-h-screen text-[#e8f4f8] p-6">
+        
+        {/* Hero Section */}
+        <section className="relative min-h-[50vh] flex items-center justify-center pt-8 pb-16 overflow-hidden rounded-3xl mb-8 bg-[#1a2123]/80 border border-white/5 shadow-2xl backdrop-blur-xl">
+          <div className="absolute inset-0 bg-gradient-to-b from-[#00d4ff]/10 to-transparent"></div>
+          <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-[#0e1417] to-transparent z-10"></div>
+          <div className="relative z-20 container mx-auto px-6 text-center">
+            <div className="inline-flex items-center mb-6 px-4 py-1.5 rounded-full bg-[#00d4ff]/10 border border-[#00d4ff]/30 text-[#00d4ff] text-sm font-bold tracking-wide">
+              <span className="w-2 h-2 rounded-full bg-[#00d4ff] mr-2 animate-pulse"></span>
+              Live Command Center Active
+            </div>
+            <h1 className="text-5xl md:text-7xl font-black mb-6 tracking-tighter" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              Empowering Citizens.<br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00d4ff] to-[#00ff94]">Transforming Karachi.</span>
+            </h1>
+            <p className="text-lg md:text-xl text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed">
+              Report civic issues directly to city administration, track resolution progress in real-time, and contribute to building a smarter, better Karachi.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <button onClick={onReportAgain} className="px-8 py-4 rounded-xl bg-gradient-to-r from-[#00d4ff] to-[#0099cc] text-[#0e1417] font-bold hover:shadow-[0_0_20px_rgba(0,212,255,0.4)] transition-all duration-300 active:scale-95 flex items-center gap-2">
+                <Plus className="w-5 h-5" />
+                Report an Issue
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           {[
-            { value: totalReported, label: 'Reports', color: '#00D4FF', icon: Activity },
-            { value: totalResolved, label: 'Resolved', color: '#00C896', icon: CheckCircle2 },
-            { value: todayCount, label: 'Impact', color: '#FFB800', icon: TrendingUp },
+            { value: totalReported, label: 'Reports Active', color: '#00D4FF', icon: Activity, desc: '+12% from last week' },
+            { value: totalResolved, label: 'Issues Resolved', color: '#00C896', icon: CheckCircle2, desc: '98% satisfaction rate' },
+            { value: todayCount, label: 'Impact Today', color: '#FFB800', icon: TrendingUp, desc: 'Avg response time: 2.4 hrs' },
           ].map((stat) => {
             const Icon = stat.icon;
             return (
-              <div key={stat.label} className="fk-desktop-kpi-card" style={{ '--kpi-color': stat.color } as React.CSSProperties}>
-                <Icon className="w-5 h-5" style={{ color: stat.color }} />
-                <strong style={{ color: stat.color }}>{stat.value}</strong>
-                <span>{stat.label}</span>
+              <div key={stat.label} className="bg-[#1a2123]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 relative overflow-hidden group hover:bg-[#1a2123]/80 transition-all duration-500">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#00d4ff]/10 to-transparent rounded-bl-full opacity-50"></div>
+                <div className="relative z-10">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-slate-300 font-medium text-sm tracking-wide uppercase">{stat.label}</h3>
+                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center border border-white/10 text-[#00d4ff]">
+                      <Icon className="w-5 h-5" />
+                    </div>
+                  </div>
+                  <div className="text-4xl font-black text-[#e8f4f8] tracking-tighter mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{stat.value}</div>
+                  <p className="text-xs text-slate-400">{stat.desc}</p>
+                </div>
               </div>
             );
           })}
         </div>
 
-        <div className="fk-desktop-home-grid">
-          <section className="fk-desktop-table-card">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <section className="lg:col-span-2 bg-[#1a2123]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex flex-col">
             <div className="fk-table-header">
               <h2>Recent Reports</h2>
               <button onClick={onReportAgain}><Plus className="w-4 h-4" /> Report</button>
@@ -220,14 +254,23 @@ export function HomeScreen({
             </table>
           </section>
 
-          <aside className="fk-desktop-map-card">
-            <h2>Live Map</h2>
-            <div className="fk-mini-map">
+          <aside className="lg:col-span-1 flex flex-col gap-6">
+            <div className="bg-[#1a2123]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6 flex-1">
+              <h2 className="text-lg font-bold text-[#e8f4f8] mb-4">Live Map</h2>
+              <div 
+                className="relative w-full aspect-square rounded-2xl bg-[#0e1417] border border-white/10 overflow-hidden shadow-inner"
+                style={{
+                  backgroundImage: 'radial-gradient(circle at center, rgba(0,212,255,0.15) 1px, transparent 1px), radial-gradient(circle at center, rgba(0,212,255,0.1) 1px, transparent 1px)',
+                  backgroundSize: '24px 24px, 100px 100px',
+                  backgroundPosition: '0 0, 12px 12px'
+                }}
+              >
               {filteredReports.slice(0, 12).map((report, index) => (
                 <button
                   key={report.id}
                   aria-label={report.title}
                   onClick={() => onReportSelect(report)}
+                  className="absolute w-3 h-3 rounded-full hover:scale-150 transition-transform cursor-pointer pulse-ring shadow-[0_0_10px_rgba(0,0,0,0.5)]"
                   style={{
                     left: `${16 + ((index * 23) % 70)}%`,
                     top: `${18 + ((index * 31) % 66)}%`,
@@ -235,15 +278,19 @@ export function HomeScreen({
                   }}
                 />
               ))}
+              </div>
             </div>
-            <h3>Top Districts</h3>
-            <div className="fk-top-districts">
-              {topDistricts.map(([district, count]) => (
-                <div key={district}>
-                  <span>{district}</span>
-                  <strong>{count}</strong>
-                </div>
-              ))}
+            
+            <div className="bg-[#1a2123]/60 backdrop-blur-xl border border-white/5 rounded-3xl p-6">
+              <h3 className="text-lg font-bold text-[#e8f4f8] mb-4">Top Districts</h3>
+              <div className="flex flex-col gap-3">
+                {topDistricts.map(([district, count]) => (
+                  <div key={district} className="flex justify-between items-center p-3 rounded-xl bg-white/5 border border-white/5">
+                    <span className="text-sm font-medium text-slate-300">{district}</span>
+                    <strong className="text-[#00d4ff] font-bold">{count}</strong>
+                  </div>
+                ))}
+              </div>
             </div>
           </aside>
         </div>

@@ -1,6 +1,5 @@
-@custom-variant dark (&:is(.dark *));
-
-/* ========================================
+@import "tailwindcss";
+@custom-variant dark (&:is(.dark *));/* ========================================
    FIX KARACHI — Design System v4
    Fully Responsive: Mobile / Tablet / Desktop
    ======================================== */

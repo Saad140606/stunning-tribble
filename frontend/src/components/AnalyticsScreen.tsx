@@ -219,23 +219,21 @@ export function AnalyticsScreen({ reports, user, layoutMode = 'mobile' }: Analyt
               </h3>
               <div className="flex flex-col items-center justify-around gap-6 py-4 flex-1">
                 <div className="relative flex items-center justify-center">
-                  <ResponsiveContainer width={160} height={160}>
-                    <PieChart>
-                      <Pie
-                        data={resolutionData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={55}
-                        outerRadius={70}
-                        paddingAngle={4}
-                        dataKey="value"
-                      >
-                        {resolutionData.map((entry, idx) => (
-                          <Cell key={`cell-${idx}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
+                  <PieChart width={160} height={160}>
+                    <Pie
+                      data={resolutionData}
+                      cx={80}
+                      cy={80}
+                      innerRadius={55}
+                      outerRadius={70}
+                      paddingAngle={4}
+                      dataKey="value"
+                    >
+                      {resolutionData.map((entry, idx) => (
+                        <Cell key={`cell-${idx}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
                   <div className="absolute flex flex-col items-center justify-center">
                     <span className="text-2xl font-extrabold text-[#00C896] font-mono">{resolutionRate}%</span>
                     <span className="text-[10px] text-[#4A6080] tracking-wider uppercase font-semibold">{t.resolved}</span>
@@ -492,23 +490,21 @@ export function AnalyticsScreen({ reports, user, layoutMode = 'mobile' }: Analyt
             </h3>
             <div className="flex flex-col sm:flex-row items-center justify-around gap-6 py-4">
               <div className="relative flex items-center justify-center">
-                <ResponsiveContainer width={160} height={160}>
-                  <PieChart>
-                    <Pie
-                      data={resolutionData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={70}
-                      paddingAngle={4}
-                      dataKey="value"
-                    >
-                      {resolutionData.map((entry, idx) => (
-                        <Cell key={`cell-${idx}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
+                <PieChart width={160} height={160}>
+                  <Pie
+                    data={resolutionData}
+                    cx={80}
+                    cy={80}
+                    innerRadius={55}
+                    outerRadius={70}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {resolutionData.map((entry, idx) => (
+                      <Cell key={`cell-${idx}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </PieChart>
                 <div className="absolute flex flex-col items-center justify-center">
                   <span className="text-2xl font-extrabold text-[#00C896] font-mono">{resolutionRate}%</span>
                   <span className="text-[10px] text-[#4A6080] tracking-wider uppercase font-semibold">{t.resolved}</span>

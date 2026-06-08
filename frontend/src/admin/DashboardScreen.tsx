@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
-  PieChart, Pie, Cell, LineChart, Line, Legend,
+  PieChart, Pie, Cell, LineChart, Line, Legend, Area, AreaChart,
 } from 'recharts';
 import { Activity, CheckCircle2, Clock, FileText, Download, TrendingUp, Building2 } from 'lucide-react';
 import { AdminReport } from './useAdminReports';
@@ -14,6 +14,32 @@ const COLORS = {
   red: '#FF3B3B',
   purple: '#8B5CF6',
   blue: '#3B82F6',
+};
+
+/* ── Design tokens from Stitch ── */
+const T = {
+  bg: '#0e1417',
+  surface: '#1a2123',
+  surfaceHigh: '#242b2e',
+  surfaceHighest: '#2f3639',
+  onSurface: '#dde3e7',
+  onSurfaceVariant: '#bbc9cf',
+  muted: '#859398',
+  outline: '#3c494e',
+  accent: '#00d4ff',
+  accentSoft: 'rgba(0, 212, 255, 0.08)',
+  border: 'rgba(168, 232, 255, 0.07)',
+  borderHover: 'rgba(168, 232, 255, 0.14)',
+  fontHeadline: "'Plus Jakarta Sans', system-ui, sans-serif",
+  fontData: "'JetBrains Mono', monospace",
+};
+
+const glassCard: React.CSSProperties = {
+  background: `linear-gradient(135deg, rgba(26,33,35,0.75) 0%, rgba(36,43,46,0.55) 100%)`,
+  border: `1px solid ${T.border}`,
+  backdropFilter: 'blur(16px)',
+  WebkitBackdropFilter: 'blur(16px)',
+  borderRadius: 12,
 };
 
 const categoryColors: Record<string, string> = {
@@ -34,10 +60,10 @@ const categoryColors: Record<string, string> = {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{ background: '#0A1628', border: '1px solid rgba(0,212,255,0.2)', borderRadius: 10, padding: '8px 12px' }}>
-        <p style={{ color: '#F0F4FF', fontSize: 12, fontWeight: 700, marginBottom: 2 }}>{label}</p>
+      <div style={{ ...glassCard, padding: '10px 14px', borderRadius: 10 }}>
+        <p style={{ color: T.onSurface, fontSize: 12, fontWeight: 700, fontFamily: T.fontHeadline, marginBottom: 3 }}>{label}</p>
         {payload.map((entry: any, i: number) => (
-          <p key={i} style={{ color: entry.color || '#00D4FF', fontSize: 11 }}>
+          <p key={i} style={{ color: entry.color || T.accent, fontSize: 11, fontFamily: T.fontData }}>
             {entry.name}: {entry.value}
           </p>
         ))}
@@ -158,14 +184,38 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
       {/* Stats Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
         {stats.map((stat) => (
-          <div key={stat.label} className="rounded-xl p-4" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.1)' }}>
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${stat.color}15` }}>
+          <div key={stat.label} className="p-4" style={glassCard}>
+            <div className="flex items-center justify-between mb-3">
+              <div
+                className="w-9 h-9 rounded-lg flex items-center justify-center"
+                style={{ background: `${stat.color}12`, border: `1px solid ${stat.color}20` }}
+              >
                 <stat.icon className="w-4 h-4" style={{ color: stat.color }} />
               </div>
             </div>
-            <div style={{ color: stat.color, fontSize: 26, fontWeight: 800, fontFamily: "'JetBrains Mono'" }}>{stat.value}</div>
-            <div style={{ color: '#8BA3C7', fontSize: 11, marginTop: 2 }}>{stat.label}</div>
+            <div
+              style={{
+                color: stat.color,
+                fontSize: 28,
+                fontWeight: 700,
+                fontFamily: T.fontData,
+                lineHeight: 1,
+              }}
+            >
+              {stat.value}
+            </div>
+            <div
+              style={{
+                color: T.muted,
+                fontSize: 11,
+                marginTop: 6,
+                fontFamily: T.fontHeadline,
+                fontWeight: 500,
+                letterSpacing: '0.02em',
+              }}
+            >
+              {stat.label}
+            </div>
           </div>
         ))}
       </div>
@@ -173,24 +223,28 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
       {/* Charts Row — District + Category Pie */}
       <div className="grid lg:grid-cols-2 gap-4">
         {/* District Bar Chart */}
-        <div className="rounded-xl p-4" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.1)' }}>
-          <h2 className="mb-4" style={{ color: '#F0F4FF', fontWeight: 800 }}>Reports by District</h2>
+        <div className="p-5" style={glassCard}>
+          <h2 style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15, marginBottom: 16 }}>
+            Reports by District
+          </h2>
           <div className="h-72">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={districtData}>
-                <CartesianGrid stroke="rgba(139,163,199,0.08)" />
-                <XAxis dataKey="district" tick={{ fill: '#8BA3C7', fontSize: 10 }} angle={-25} textAnchor="end" height={60} />
-                <YAxis tick={{ fill: '#8BA3C7' }} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,212,255,0.04)' }} />
-                <Bar dataKey="reports" fill="#00D4FF" radius={[6, 6, 0, 0]} />
+                <CartesianGrid stroke="rgba(133,147,152,0.08)" />
+                <XAxis dataKey="district" tick={{ fill: T.muted, fontSize: 10 }} angle={-25} textAnchor="end" height={60} />
+                <YAxis tick={{ fill: T.muted }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,212,255,0.03)' }} />
+                <Bar dataKey="reports" fill={T.accent} radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Category Pie Chart */}
-        <div className="rounded-xl p-4" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.1)' }}>
-          <h2 className="mb-4" style={{ color: '#F0F4FF', fontWeight: 800 }}>Category Breakdown</h2>
+        <div className="p-5" style={glassCard}>
+          <h2 style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15, marginBottom: 16 }}>
+            Category Breakdown
+          </h2>
           <div className="h-72 flex items-center">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -211,8 +265,8 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
-                  wrapperStyle={{ fontSize: 11, color: '#8BA3C7' }}
-                  formatter={(value: string) => <span style={{ color: '#8BA3C7' }}>{value}</span>}
+                  wrapperStyle={{ fontSize: 11, color: T.muted }}
+                  formatter={(value: string) => <span style={{ color: T.muted }}>{value}</span>}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -220,33 +274,57 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
         </div>
       </div>
 
-      {/* Weekly Trend Line Chart */}
-      <div className="rounded-xl p-4" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.1)' }}>
-        <h2 className="mb-4" style={{ color: '#F0F4FF', fontWeight: 800 }}>Weekly Reporting Trend</h2>
+      {/* Weekly Trend Area Chart */}
+      <div className="p-5" style={glassCard}>
+        <h2 style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15, marginBottom: 16 }}>
+          Weekly Reporting Trend
+        </h2>
         <div className="h-56">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={weeklyData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(139,163,199,0.08)" />
-              <XAxis dataKey="day" tick={{ fill: '#8BA3C7', fontSize: 11 }} />
-              <YAxis tick={{ fill: '#8BA3C7' }} />
+            <AreaChart data={weeklyData}>
+              <defs>
+                <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.2} />
+                  <stop offset="100%" stopColor="#00d4ff" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(133,147,152,0.08)" />
+              <XAxis dataKey="day" tick={{ fill: T.muted, fontSize: 11 }} />
+              <YAxis tick={{ fill: T.muted }} />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="reports" stroke="#00D4FF" strokeWidth={2.5} dot={{ fill: '#00D4FF', r: 4, stroke: '#0F2040', strokeWidth: 2 }} activeDot={{ r: 6, fill: '#00D4FF', stroke: '#0A1628', strokeWidth: 3 }} />
-            </LineChart>
+              <Area
+                type="monotone"
+                dataKey="reports"
+                stroke="#00d4ff"
+                strokeWidth={2}
+                fill="url(#areaGradient)"
+                dot={{ fill: '#00d4ff', r: 4, stroke: T.surface, strokeWidth: 2 }}
+                activeDot={{ r: 6, fill: '#00d4ff', stroke: T.bg, strokeWidth: 3 }}
+              />
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
       {/* Department Performance */}
-      <div className="rounded-xl p-4" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.1)' }}>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="flex items-center gap-2" style={{ color: '#F0F4FF', fontWeight: 800 }}>
-            <Building2 className="w-5 h-5" style={{ color: '#00D4FF' }} /> Department Performance
+      <div className="p-5" style={glassCard}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="flex items-center gap-2" style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15 }}>
+            <Building2 className="w-5 h-5" style={{ color: T.accent }} /> Department Performance
           </h2>
           <div className="flex gap-2">
-            <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'rgba(0,212,255,0.1)', color: '#00D4FF' }}>
+            <button
+              onClick={exportCSV}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{ background: T.accentSoft, color: T.accent, border: `1px solid ${T.border}`, fontFamily: T.fontHeadline }}
+            >
               <Download className="w-3.5 h-3.5" /> CSV
             </button>
-            <button onClick={exportPDF} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold" style={{ background: 'rgba(0,212,255,0.1)', color: '#00D4FF' }}>
+            <button
+              onClick={exportPDF}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors"
+              style={{ background: T.accentSoft, color: T.accent, border: `1px solid ${T.border}`, fontFamily: T.fontHeadline }}
+            >
               <Download className="w-3.5 h-3.5" /> PDF
             </button>
           </div>
@@ -254,23 +332,39 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
         {deptPerformance.length > 0 ? (
           <div className="space-y-3">
             {deptPerformance.map((dept) => (
-              <div key={dept.dept} className="rounded-xl p-3" style={{ background: '#0A1628' }}>
+              <div key={dept.dept} className="rounded-xl p-4" style={{ background: T.bg, border: `1px solid ${T.border}` }}>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="font-bold text-sm" style={{ color: '#F0F4FF' }}>{dept.dept}</span>
+                  <span className="font-semibold text-sm" style={{ color: T.onSurface, fontFamily: T.fontHeadline }}>{dept.dept}</span>
                   <div className="flex items-center gap-3">
-                    <span className="text-xs" style={{ color: '#8BA3C7' }}>
-                      {dept.total} total • {dept.resolved} resolved
+                    <span className="text-xs" style={{ color: T.muted, fontFamily: T.fontData }}>
+                      {dept.total} total · {dept.resolved} resolved
                     </span>
-                    <span className="px-2 py-0.5 rounded-full text-xs font-bold" style={{ background: dept.resolutionRate > 60 ? 'rgba(0,200,150,0.12)' : 'rgba(255,184,0,0.12)', color: dept.resolutionRate > 60 ? '#00C896' : '#FFB800' }}>
+                    <span
+                      className="px-2.5 py-0.5 rounded-full text-xs font-bold"
+                      style={{
+                        background: dept.resolutionRate > 60 ? 'rgba(0,200,150,0.1)' : 'rgba(255,184,0,0.1)',
+                        color: dept.resolutionRate > 60 ? '#00C896' : '#FFB800',
+                        fontFamily: T.fontData,
+                      }}
+                    >
                       {dept.resolutionRate}%
                     </span>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-2 rounded-full" style={{ background: 'rgba(0,212,255,0.08)' }}>
-                    <div className="h-full rounded-full" style={{ width: `${dept.resolutionRate}%`, background: dept.resolutionRate > 60 ? COLORS.green : COLORS.amber, transition: 'width 0.6s ease' }} />
+                  <div className="flex-1 h-1.5 rounded-full" style={{ background: 'rgba(168,232,255,0.06)' }}>
+                    <div
+                      className="h-full rounded-full"
+                      style={{
+                        width: `${dept.resolutionRate}%`,
+                        background: dept.resolutionRate > 60
+                          ? 'linear-gradient(90deg, #00C896, #00E6AA)'
+                          : 'linear-gradient(90deg, #FFB800, #FFD060)',
+                        transition: 'width 0.6s ease',
+                      }}
+                    />
                   </div>
-                  <span className="text-xs font-mono" style={{ color: '#8BA3C7' }}>
+                  <span className="text-xs" style={{ color: T.muted, fontFamily: T.fontData }}>
                     {dept.avgTime > 0 ? `${dept.avgTime}h avg` : 'N/A'}
                   </span>
                 </div>
@@ -278,26 +372,42 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
             ))}
           </div>
         ) : (
-          <p className="text-sm" style={{ color: '#8BA3C7' }}>No department assignments yet. Assign reports to see performance data.</p>
+          <p className="text-sm" style={{ color: T.muted }}>No department assignments yet. Assign reports to see performance data.</p>
         )}
       </div>
 
       {/* Recent Activity */}
-      <div className="rounded-xl p-4" style={{ background: '#0F2040', border: '1px solid rgba(0,212,255,0.1)' }}>
-        <h2 className="mb-3" style={{ color: '#F0F4FF', fontWeight: 800 }}>Recent Activity</h2>
-        <div className="space-y-3">
+      <div className="p-5" style={glassCard}>
+        <h2 className="mb-4" style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15 }}>
+          Recent Activity
+        </h2>
+        <div className="space-y-1">
           {reports.slice(0, 10).map((report) => (
-            <div key={report.id} className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid rgba(0,212,255,0.06)' }}>
+            <div
+              key={report.id}
+              className="flex items-center justify-between py-3 px-2 rounded-lg transition-colors"
+              style={{ borderBottom: `1px solid ${T.border}` }}
+            >
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs" style={{ color: '#8BA3C7' }}>{report.id}</span>
-                <span style={{ color: '#8BA3C7' }}>{report.title}</span>
+                <span style={{ color: T.muted, fontFamily: T.fontData, fontSize: 11 }}>{report.id}</span>
+                <span style={{ color: T.onSurfaceVariant, fontFamily: T.fontHeadline, fontSize: 13 }}>{report.title}</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full px-2 py-1 text-xs font-bold" style={{ color: report.status === 'resolved' ? COLORS.green : report.status === 'emergency' ? COLORS.red : COLORS.cyan, background: report.status === 'resolved' ? 'rgba(0,200,150,0.08)' : report.status === 'emergency' ? 'rgba(255,59,59,0.08)' : 'rgba(0,212,255,0.08)' }}>
+                <span
+                  className="rounded-full px-2.5 py-1 text-xs font-bold"
+                  style={{
+                    color: report.status === 'resolved' ? COLORS.green : report.status === 'emergency' ? COLORS.red : T.accent,
+                    background: report.status === 'resolved' ? 'rgba(0,200,150,0.08)' : report.status === 'emergency' ? 'rgba(255,59,59,0.08)' : T.accentSoft,
+                    fontFamily: T.fontData,
+                    fontSize: 10,
+                    letterSpacing: '0.05em',
+                    textTransform: 'uppercase',
+                  }}
+                >
                   {report.status}
                 </span>
                 {report.assignedTo && (
-                  <span className="text-xs" style={{ color: '#8BA3C7' }}>{report.assignedTo}</span>
+                  <span className="text-xs" style={{ color: T.muted, fontFamily: T.fontData }}>{report.assignedTo}</span>
                 )}
               </div>
             </div>
