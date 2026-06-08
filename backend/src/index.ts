@@ -14,11 +14,25 @@ import analyticsRoutes from './routes/analytics.routes';
 import complaintsRoutes from './routes/complaints.routes';
 
 const app = express();
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 4000;
+
+// Allowed origins from env + Vite default port
+const allowedOrigins = [
+  process.env.CORS_ORIGIN || 'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
 
 // Middleware configurations
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked: ${origin}`));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());

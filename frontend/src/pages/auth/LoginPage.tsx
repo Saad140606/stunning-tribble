@@ -61,9 +61,9 @@ export function LoginPage() {
   }, []);
 
   return (
-    <div className="min-h-screen grid grid-cols-1 lg:grid-cols-12 bg-[#0e1417]">
+    <div className="min-h-screen flex bg-[#0e1417]">
       {/* Left Column: Branding Showcase (Hidden on Mobile) */}
-      <div className="hidden lg:flex lg:col-span-6 flex-col justify-between p-12 relative overflow-hidden border-r border-white/5 bg-[#1a2123]/40 backdrop-blur-3xl">
+      <div className="hidden lg:flex w-1/2 flex-col justify-between p-12 relative overflow-hidden border-r border-white/5 bg-[#1a2123]/40 backdrop-blur-3xl">
         {/* Decorative Grid Lines */}
         <div className="absolute inset-0 opacity-10" style={{
           backgroundImage: 'radial-gradient(circle, #00D4FF 1.5px, transparent 1.5px)',
@@ -131,7 +131,7 @@ export function LoginPage() {
       </div>
 
       {/* Right Column: Form Panel (Span 6) */}
-      <div className="lg:col-span-6 flex items-center justify-center p-6 sm:p-12">
+      <div className="flex-1 flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md space-y-6">
           <div className="text-center lg:text-left">
             <div className="lg:hidden w-16 h-16 mx-auto rounded-2xl flex items-center justify-center mb-6 bg-gradient-to-br from-[#00d4ff] to-[#0088cc] shadow-[0_0_20px_rgba(0,212,255,0.3)]">
