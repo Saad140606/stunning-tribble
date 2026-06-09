@@ -1,4 +1,5 @@
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000') + '/api';
+const RAW_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'https://fix-khi-zabefest-production.up.railway.app').replace(/\/+$/, '');
+const API_BASE_URL = `${RAW_API_BASE_URL.replace(/\/api\/?$/, '')}/api`;
 
 
 let accessToken: string | null = localStorage.getItem('accessToken');

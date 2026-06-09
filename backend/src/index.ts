@@ -16,12 +16,15 @@ import complaintsRoutes from './routes/complaints.routes';
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Allowed origins from env + Vite default port
+// Allowed origins from env + deployed frontends
 const allowedOrigins = [
-  process.env.CORS_ORIGIN || 'http://localhost:3000',
-  'http://localhost:5173',
   'http://localhost:3000',
+  'http://localhost:5173',
   'http://localhost:3001',
+  'https://fix-khi-zabefest.vercel.app',
+  'https://fix-khi-zabefest-git-main-saad-najams-projects.vercel.app',
+  'https://fix-khi-zabefest-production.up.railway.app',
+  ...(process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',').map((item) => item.trim()).filter(Boolean) : []),
 ];
 
 // Middleware configurations
