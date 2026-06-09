@@ -1,7 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
-import { firebaseAuth, isFirebaseConfigured } from '../lib/firebase';
+import { auth as firebaseAuth, isFirebaseConfigured } from '../lib/firebase';
 import { CivicNotification, NotificationType } from '../types/notifications';
 import {
   cacheNotifications,
