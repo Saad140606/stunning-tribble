@@ -2,7 +2,9 @@ import { Pool } from 'pg';
 import * as fs from 'fs';
 import * as path from 'path';
 
-const useLocalJSON = !process.env.DATABASE_URL;
+const useLocalJSON = !process.env.DATABASE_URL ||
+  process.env.DATABASE_URL.startsWith('file:') ||
+  process.env.DATABASE_URL.startsWith('sqlite:');
 
 // Path for fallback JSON database
 const JSON_DB_PATH = path.join(__dirname, '../../database.json');
@@ -45,7 +47,7 @@ const writeJsonDb = (data: JsonDbSchema) => {
 };
 
 export const db = {
-  isPg: !useLocalJSON,
+  get isPg() { return !!pool },
 
   readLocal(): JsonDbSchema {
     return readJsonDb();
@@ -218,6 +220,15 @@ export const db = {
       const token = params[0];
       const tokenRow = data.refresh_tokens.find(t => t.token === token && !t.revoked);
       return { rows: tokenRow ? [tokenRow] : [] };
+    }
+
+    // 5.1. SELECT FROM complaints
+    if (queryLower.includes('select') && queryLower.includes('from complaints')) {
+      let rows = [...data.complaints];
+      if (queryLower.includes('order by created_at desc')) {
+        rows.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      }
+      return { rows };
     }
 
     // 6. UPDATE users (e.g. settings/profile/role)

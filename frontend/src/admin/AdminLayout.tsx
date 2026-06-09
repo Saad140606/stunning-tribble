@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BarChart3, Bell, Clock, FileText, LayoutDashboard, LogOut, Map, RadioTower, Siren, Users } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { motion, AnimatePresence } from 'motion/react';
 import { DashboardScreen } from './DashboardScreen';
 import { ReportsTable } from './ReportsTable';
 import { EmergencyQueue } from './EmergencyQueue';
@@ -200,14 +201,25 @@ export function AdminApp() {
         </header>
 
         {/* Page Content */}
-        <div className="p-5 lg:p-7">
-          {(active === 'dashboard' || active === 'analytics') && <DashboardScreen reports={reports} />}
-          {active === 'emergency' && <EmergencyQueue reports={reports} />}
-          {active === 'alerts' && <AdminEmergencyAlertForm />}
-          {active === 'notifications' && <AdminNotificationPanel reports={reports} />}
-          {active === 'heatmap' && <AdminHeatmap reports={reports} />}
-          {active === 'users' && <UserManagement />}
-          {!['dashboard', 'analytics', 'emergency', 'alerts', 'notifications', 'heatmap', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
+        <div className="p-5 lg:p-7 overflow-x-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -12 }}
+              transition={{ duration: 0.2 }}
+              className="w-full"
+            >
+              {(active === 'dashboard' || active === 'analytics') && <DashboardScreen reports={reports} />}
+              {active === 'emergency' && <EmergencyQueue reports={reports} />}
+              {active === 'alerts' && <AdminEmergencyAlertForm />}
+              {active === 'notifications' && <AdminNotificationPanel reports={reports} />}
+              {active === 'heatmap' && <AdminHeatmap reports={reports} />}
+              {active === 'users' && <UserManagement />}
+              {!['dashboard', 'analytics', 'emergency', 'alerts', 'notifications', 'heatmap', 'users'].includes(active) && <ReportsTable reports={filtered} onLocalUpdate={onLocalUpdate} />}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
     </div>

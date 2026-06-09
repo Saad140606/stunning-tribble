@@ -39,8 +39,22 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
 
   let response = await fetch(url, config);
 
-  // If unauthorized, attempt to refresh token and retry once
-  if (response.status === 401 && !options.skipAuth) {
+  // Debug logging for auth endpoints (helpful during development)
+  if (endpoint.includes('/auth/login') || endpoint.includes('/auth/refresh')) {
+    try {
+      const clone = response.clone();
+      const contentType = clone.headers.get('content-type') || '';
+      let body: any = null;
+      if (contentType.includes('application/json')) body = await clone.json();
+      else body = await clone.text();
+      console.debug(`[apiFetch] ${endpoint} -> ${response.status}`, body);
+    } catch (err) {
+      console.debug(`[apiFetch] ${endpoint} -> ${response.status} (failed to parse body)`, err);
+    }
+  }
+
+  // If unauthorized or token expired, attempt to refresh token and retry once
+  if ((response.status === 401 || response.status === 403) && !options.skipAuth) {
     const refreshed = await attemptTokenRefresh();
     if (refreshed) {
       // Retry request with new token
@@ -54,11 +68,14 @@ export async function apiFetch(endpoint: string, options: RequestOptions = {}): 
 
 async function attemptTokenRefresh(): Promise<boolean> {
   try {
-    // HttpOnly cookie is sent automatically via credentials: 'include'
+    // Try refresh using stored refresh token (falls back to cookie if not available)
+    const storedRefresh = localStorage.getItem('refreshToken');
+    const body = storedRefresh ? JSON.stringify({ refreshToken: storedRefresh }) : undefined;
     const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
+      body,
     });
 
     if (response.ok) {
@@ -66,6 +83,26 @@ async function attemptTokenRefresh(): Promise<boolean> {
       if (data.accessToken) {
         setAccessToken(data.accessToken);
         return true;
+      }
+    }
+    // If stored refresh token was rejected (403), try cookie-only refresh as a fallback
+    if (response && response.status === 403 && localStorage.getItem('refreshToken')) {
+      try {
+        localStorage.removeItem('refreshToken');
+        const cookieOnly = await fetch(`${API_BASE_URL}/auth/refresh`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (cookieOnly.ok) {
+          const data2 = await cookieOnly.json();
+          if (data2.accessToken) {
+            setAccessToken(data2.accessToken);
+            return true;
+          }
+        }
+      } catch (err) {
+        console.error('Cookie-only refresh failed:', err);
       }
     }
   } catch (err) {

@@ -1,7 +1,10 @@
 import { Request, Response, NextFunction } from 'express';
 import * as jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-karachi-key-zabe-fest-2026-auth';
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error('FATAL: JWT_SECRET must be set in environment');
+}
 
 export interface AuthenticatedRequest extends Request {
   user?: {

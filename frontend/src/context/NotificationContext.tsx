@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useAuth } from './AuthContext';
+import { firebaseAuth, isFirebaseConfigured } from '../lib/firebase';
 import { CivicNotification, NotificationType } from '../types/notifications';
 import {
   cacheNotifications,
@@ -44,19 +45,22 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const hasHydratedRef = useRef(false);
 
   useEffect(() => {
-    if (!user?.uid) {
+    // Prefer Firebase UID for Firestore subscriptions when available
+    const firebaseUid = isFirebaseConfigured ? firebaseAuth.currentUser?.uid : undefined;
+    const subId = firebaseUid ?? user?.uid;
+    if (!subId) {
       setNotifications([]);
       setPushEnabled(false);
       return;
     }
 
-    const cached = getCachedNotifications(user.uid);
+    const cached = getCachedNotifications(subId);
     if (cached.length) setNotifications(cached);
     setLoading(true);
     hasHydratedRef.current = false;
 
     const unsubscribe = subscribeToNotifications(
-      user.uid,
+      subId,
       (items) => {
         setNotifications((previous) => {
           if (hasHydratedRef.current) {
@@ -95,9 +99,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, []);
 
   const enablePushNotifications = useCallback(async () => {
-    if (!user?.uid) return;
+    const firebaseUid = isFirebaseConfigured ? firebaseAuth.currentUser?.uid : undefined;
+    const subId = firebaseUid ?? user?.uid;
+    if (!subId) return;
     try {
-      const token = await requestAndStoreFcmToken(user.uid);
+      const token = await requestAndStoreFcmToken(subId);
       setPushEnabled(Boolean(token));
       if (token) toast.success('Push notifications enabled');
       else toast.error('Push permission was not granted or FCM is not configured');
@@ -108,25 +114,31 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [user?.uid]);
 
   const notify = useCallback<NotificationContextValue['notify']>(async (input) => {
-    if (!user?.uid) return;
-    await createNotification({ userId: user.uid, ...input });
+    const firebaseUid = isFirebaseConfigured ? firebaseAuth.currentUser?.uid : undefined;
+    const subId = firebaseUid ?? user?.uid;
+    if (!subId) return;
+    await createNotification({ userId: subId, ...input });
   }, [user?.uid]);
 
   const markRead = useCallback(async (notificationId: string, read = true) => {
     await markNotificationRead(notificationId, read);
     setNotifications((prev) => {
       const next = prev.map((item) => (item.id === notificationId ? { ...item, read } : item));
-      if (user?.uid) cacheNotifications(user.uid, next);
+      const firebaseUid = isFirebaseConfigured ? firebaseAuth.currentUser?.uid : undefined;
+      const subId = firebaseUid ?? user?.uid;
+      if (subId) cacheNotifications(subId, next);
       return next;
     });
   }, [user?.uid]);
 
   const markAllRead = useCallback(async () => {
-    if (!user?.uid) return;
-    await markAllNotificationsRead(user.uid);
+    const firebaseUid = isFirebaseConfigured ? firebaseAuth.currentUser?.uid : undefined;
+    const subId = firebaseUid ?? user?.uid;
+    if (!subId) return;
+    await markAllNotificationsRead(subId);
     setNotifications((prev) => {
       const next = prev.map((item) => ({ ...item, read: true }));
-      cacheNotifications(user.uid, next);
+      cacheNotifications(subId, next);
       return next;
     });
   }, [user?.uid]);
@@ -135,7 +147,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     await deleteNotification(notificationId);
     setNotifications((prev) => {
       const next = prev.filter((item) => item.id !== notificationId);
-      if (user?.uid) cacheNotifications(user.uid, next);
+      const firebaseUid = isFirebaseConfigured ? firebaseAuth.currentUser?.uid : undefined;
+      const subId = firebaseUid ?? user?.uid;
+      if (subId) cacheNotifications(subId, next);
       return next;
     });
   }, [user?.uid]);

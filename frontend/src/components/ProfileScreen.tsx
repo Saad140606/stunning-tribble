@@ -62,30 +62,7 @@ export function ProfileScreen({
     return `${diffDays} ${t.daysAgo}`;
   };
 
-  // Mock demo reports fallback for showcase
-  const mockReports: Report[] = [
-    {
-      id: 'mock-1', title: 'Broken streetlight near bus stop', description: 'Streetlight non-functional for 3 days',
-      imageUrl: '', district: user.district, ward: 'Clifton', street: 'Sea View Road',
-      coordinates: user.coordinates, distance: 0.1, timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000),
-      aiTag: 'Streetlight', aiConfidence: 94, status: 'inprogress' as const, upvotes: 15, comments: [],
-      severity: 6, type: 'streetlight', userId: 'current-user', hasUserUpvoted: false,
-    },
-    {
-      id: 'mock-2', title: 'Garbage overflow in residential area', description: 'Multiple bins overflowing',
-      imageUrl: '', district: user.district, ward: 'Gulshan-e-Iqbal', street: 'Block 13',
-      coordinates: user.coordinates, distance: 0.5, timestamp: new Date(Date.now() - 72 * 60 * 60 * 1000),
-      aiTag: 'Garbage', aiConfidence: 89, status: 'resolved' as const, upvotes: 8, comments: [],
-      severity: 7, type: 'garbage', userId: 'current-user', hasUserUpvoted: false,
-    },
-  ];
-
-  // Try to find current user's reports
-  const realUserReports = reports.filter(
-    r => r.userId === profile?.uid || String(r.id).startsWith('user_')
-  );
-  
-  const userReports = realUserReports.length > 0 ? realUserReports : mockReports;
+  const userReports = reports;
 
   const totalUpvotes = userReports.reduce((sum, r) => sum + r.upvotes, 0);
   const resolvedCount = userReports.filter(r => r.status === 'resolved').length;

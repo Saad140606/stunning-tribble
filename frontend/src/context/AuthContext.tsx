@@ -48,8 +48,17 @@ async function signInFirebaseIfConfigured(email: string, password: string) {
   try {
     const result = await signInWithEmailAndPassword(firebaseAuth, email, password);
     return result.user;
-  } catch (err) {
+  } catch (err: any) {
     console.warn('Firebase sign-in failed. Firestore features need matching Firebase Auth credentials.', err);
+    if (err.code === 'auth/user-not-found' || err.code === 'auth/invalid-credential' || err.code === 'auth/invalid-email') {
+      try {
+        console.log('Firebase user not found, attempting auto-registration in Firebase Auth...');
+        const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
+        return result.user;
+      } catch (regErr) {
+        console.warn('Auto-registration in Firebase failed:', regErr);
+      }
+    }
     return null;
   }
 }
@@ -59,8 +68,17 @@ async function registerFirebaseIfConfigured(email: string, password: string) {
   try {
     const result = await createUserWithEmailAndPassword(firebaseAuth, email, password);
     return result.user;
-  } catch (err) {
+  } catch (err: any) {
     console.warn('Firebase registration failed. The backend account was created, but Firestore features need Firebase Auth.', err);
+    if (err.code === 'auth/email-already-in-use') {
+      try {
+        console.log('Firebase user already exists, attempting auto-sign-in...');
+        const result = await signInWithEmailAndPassword(firebaseAuth, email, password);
+        return result.user;
+      } catch (signInErr) {
+        console.warn('Fallback auto-sign-in in Firebase failed:', signInErr);
+      }
+    }
     return null;
   }
 }
@@ -88,23 +106,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   // Initialize and load user profile if accessToken exists
-  const loadUserSession = async () => {
+  const loadUserSession = async (firebaseUser?: any) => {
     try {
       const response = await apiFetch('/auth/me');
       if (response.ok) {
         const data = await response.json();
         const apiUser = data.user;
-        const firebaseUid = firebaseAuth.currentUser?.uid;
+        
+        const fbUser = firebaseUser !== undefined ? firebaseUser : (isFirebaseConfigured ? firebaseAuth.currentUser : null);
+        const firebaseUid = fbUser?.uid;
+        const apiUid = String(apiUser.id);
         
         const session: UserSession = {
-          uid: firebaseUid ?? String(apiUser.id),
+          uid: apiUid,
           email: apiUser.email,
           role: apiUser.role as CivicRole,
           full_name: apiUser.full_name
         };
 
         const civProfile: CivicProfile = {
-          uid: firebaseUid ?? String(apiUser.id),
+          uid: apiUid,
           phone: apiUser.phone,
           role: apiUser.role as CivicRole,
           district: apiUser.city, // Mapping city to district
@@ -118,7 +139,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setUser(session);
         setProfile(civProfile);
-        await syncFirebaseUserProfile(session.uid, apiUser);
+        if (firebaseUid) {
+          await syncFirebaseUserProfile(firebaseUid, apiUser);
+        }
       } else {
         // Clear session if fetch me fails
         setUser(null);
@@ -133,7 +156,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    loadUserSession();
+    if (!isFirebaseConfigured) {
+      loadUserSession();
+      return;
+    }
+
+    const unsubscribe = firebaseAuth.onAuthStateChanged((firebaseUser) => {
+      loadUserSession(firebaseUser);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loginAction = async (email: string, password: string) => {
@@ -152,18 +184,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setAccessToken(data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
       const firebaseUser = await signInFirebaseIfConfigured(email, password);
       
       const apiUser = data.user;
+      const apiUid = String(apiUser.id);
+      const firebaseUid = firebaseUser?.uid;
       const session: UserSession = {
-        uid: firebaseUser?.uid ?? String(apiUser.id),
+        uid: apiUid,
         email: apiUser.email,
         role: apiUser.role as CivicRole,
         full_name: apiUser.full_name
       };
 
       const civProfile: CivicProfile = {
-        uid: firebaseUser?.uid ?? String(apiUser.id),
+        uid: apiUid,
         phone: apiUser.phone,
         role: apiUser.role as CivicRole,
         district: apiUser.city,
@@ -177,7 +214,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(session);
       setProfile(civProfile);
-      await syncFirebaseUserProfile(session.uid, apiUser);
+      if (firebaseUid) {
+        await syncFirebaseUserProfile(firebaseUid, apiUser);
+      }
       return data;
     } finally {
       setLoading(false);
@@ -200,18 +239,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setAccessToken(data.accessToken);
+      if (data.refreshToken) {
+        localStorage.setItem('refreshToken', data.refreshToken);
+      }
       const firebaseUser = await registerFirebaseIfConfigured(userData.email, userData.password);
 
       const apiUser = data.user;
+      const apiUid = String(apiUser.id);
+      const firebaseUid = firebaseUser?.uid;
       const session: UserSession = {
-        uid: firebaseUser?.uid ?? String(apiUser.id),
+        uid: apiUid,
         email: apiUser.email,
         role: apiUser.role as CivicRole,
         full_name: apiUser.full_name
       };
 
       const civProfile: CivicProfile = {
-        uid: firebaseUser?.uid ?? String(apiUser.id),
+        uid: apiUid,
         phone: apiUser.phone,
         role: apiUser.role as CivicRole,
         district: apiUser.city,
@@ -225,7 +269,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(session);
       setProfile(civProfile);
-      await syncFirebaseUserProfile(session.uid, apiUser);
+      if (firebaseUid) {
+        await syncFirebaseUserProfile(firebaseUid, apiUser);
+      }
       return data;
     } finally {
       setLoading(false);
@@ -239,6 +285,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Logout error:', err);
     } finally {
       setAccessToken(null);
+      localStorage.removeItem('refreshToken');
       if (isFirebaseConfigured) {
         await firebaseSignOut(firebaseAuth).catch((err) => console.error('Firebase logout error:', err));
       }
@@ -259,15 +306,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const apiUser = data.profile;
+    const apiUid = String(apiUser.id);
     const session: UserSession = {
-      uid: String(apiUser.id),
+      uid: apiUid,
       email: apiUser.email,
       role: apiUser.role as CivicRole,
       full_name: apiUser.full_name
     };
 
     const civProfile: CivicProfile = {
-      uid: String(apiUser.id),
+      uid: apiUid,
       phone: apiUser.phone,
       role: apiUser.role as CivicRole,
       district: apiUser.city,

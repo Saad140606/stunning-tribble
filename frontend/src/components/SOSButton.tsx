@@ -96,15 +96,15 @@ export function SOSButton({ onCreated }: { onCreated?: (reference: string) => vo
       `}</style>
       <button
         onClick={() => setOpen(true)}
-        className="fixed z-40 flex flex-col items-center gap-1"
-        style={{ left: 18, bottom: 92, color: '#F0F4FF' }}
+        className="flex flex-col items-center gap-1"
+        style={{ color: '#F0F4FF' }}
         aria-label="Emergency SOS"
       >
-        <span className="relative w-[52px] h-[52px] rounded-full flex items-center justify-center" style={{ background: '#FF3B3B' }}>
+        <span className="relative w-11 h-11 rounded-full flex items-center justify-center" style={{ background: '#FF3B3B' }}>
           <span className="absolute inset-0 rounded-full" style={{ border: '2px solid #FF3B3B', animation: 'sosPulse 2s infinite' }} />
-          <ShieldAlert className="w-6 h-6" />
+          <ShieldAlert className="w-5 h-5" />
         </span>
-        <span style={{ fontSize: 11, fontWeight: 800 }}>SOS</span>
+        <span style={{ fontSize: 10, fontWeight: 800 }}>SOS</span>
       </button>
 
       {open && (

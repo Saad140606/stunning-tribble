@@ -254,32 +254,11 @@ export function LeafletMapScreen({ reports, user, layoutMode = 'mobile', onRepor
     }
   }, [filteredReports, reportCoordinates, useBackendHeatmap, backendHeatPoints]);
 
-  return (
-    <div className={`flex flex-col relative fk-map-full ${isDesktop ? 'fk-map-desktop' : ''}`} style={{ background: '#0A1628' }}>
-      {isDesktop && (
-        <aside className="fk-map-list-panel">
-          <div className="fk-map-list-filter">
-            <Layers className="w-4 h-4" />
-            <span>{filteredReports.length} reports</span>
-          </div>
-          <div className="fk-map-list-scroll">
-            {filteredReports.map((report) => (
-              <button
-                key={report.id}
-                className={selectedPin?.id === report.id ? 'active' : ''}
-                onClick={() => setSelectedPin(report)}
-              >
-                <strong>{report.title}</strong>
-                <span>{report.ward} • Severity {report.severity}/10</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-      )}
-      {/* Filter Chips + Heatmap Toggle */}
+  const renderFilterChips = () => {
+    return (
       <div
-        className={`absolute top-3 left-3 right-3 z-30 flex gap-2 items-center ${isDesktop ? 'fk-map-desktop-filters' : ''}`}
-        style={{ scrollbarWidth: 'none', overflowX: 'auto', paddingBottom: 4 }}
+        className={isDesktop ? "fk-map-desktop-filters flex gap-2 items-center" : "absolute top-3 left-3 right-3 z-30 flex gap-2 items-center"}
+        style={isDesktop ? {} : { scrollbarWidth: 'none', overflowX: 'auto', paddingBottom: 4 }}
       >
         {filterOptions.map((option) => (
           <button
@@ -314,9 +293,36 @@ export function LeafletMapScreen({ reports, user, layoutMode = 'mobile', onRepor
           {useBackendHeatmap ? 'API Heatmap ✓' : 'API Heatmap'}
         </button>
       </div>
+    );
+  };
+
+  return (
+    <div className={`flex flex-col relative fk-map-full ${isDesktop ? 'fk-map-desktop' : ''}`} style={{ background: '#0A1628' }}>
+      {isDesktop && (
+        <aside className="fk-map-list-panel">
+          <div className="fk-map-list-filter">
+            <Layers className="w-4 h-4" />
+            <span>{filteredReports.length} reports</span>
+          </div>
+          {renderFilterChips()}
+          <div className="fk-map-list-scroll">
+            {filteredReports.map((report) => (
+              <button
+                key={report.id}
+                className={selectedPin?.id === report.id ? 'active' : ''}
+                onClick={() => setSelectedPin(report)}
+              >
+                <strong>{report.title}</strong>
+                <span>{report.ward} • Severity {report.severity}/10</span>
+              </button>
+            ))}
+          </div>
+        </aside>
+      )}
 
       {/* Map */}
       <div className="relative flex-1 z-10">
+        {!isDesktop && renderFilterChips()}
         <div ref={mapRef} className="w-full h-full" style={{ minHeight: '400px' }} />
 
         {/* Issues count pill */}

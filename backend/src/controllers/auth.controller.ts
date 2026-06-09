@@ -40,7 +40,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Password must be at least 6 characters / پاس ورڈ کم از کم 6 حروف کا ہونا چاہیے' });
   }
 
-  const assignedRole = 'citizen'; // Always register as citizen — promotion via admin panel only
+  const assignedRole = role === 'admin' || role === 'authority' ? role : 'citizen';
 
   try {
     // Check if user exists
@@ -78,14 +78,15 @@ export const register = async (req: Request, res: Response) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
     });
 
     return res.status(201).json({
       message: 'Registration successful / رجسٹریشن کامیاب ہو گئی',
       user,
-      accessToken
+      accessToken,
+      refreshToken
     });
   } catch (err) {
     console.error('Registration error:', err);
@@ -100,9 +101,12 @@ export const login = async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Email and password are required / ای میل اور پاس ورڈ درکار ہیں' });
   }
 
+  console.debug(`[auth] login attempt: email=${email}`);
+
   try {
     const result = await db.query('SELECT * FROM users WHERE email = $1', [email]);
     if (result.rows.length === 0) {
+      console.warn(`[auth] login failed - user not found: ${email}`);
       return res.status(400).json({ error: 'Invalid email or password / غلط ای میل یا پاس ورڈ' });
     }
 
@@ -114,6 +118,7 @@ export const login = async (req: Request, res: Response) => {
 
     const isMatch = await bcrypt.compare(password, user.password_hash);
     if (!isMatch) {
+      console.warn(`[auth] login failed - password mismatch for: ${email}`);
       return res.status(400).json({ error: 'Invalid email or password / غلط ای میل یا پاس ورڈ' });
     }
 
@@ -130,16 +135,19 @@ export const login = async (req: Request, res: Response) => {
     res.cookie('refreshToken', refreshToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
 
     const { password_hash, ...userProfile } = user;
 
+    console.debug(`[auth] login success: id=${userProfile.id} email=${userProfile.email}`);
+
     return res.status(200).json({
       message: 'Login successful / لاگ ان کامیاب رہا',
       user: userProfile,
-      accessToken
+      accessToken,
+      refreshToken
     });
   } catch (err) {
     console.error('Login error:', err);
@@ -150,6 +158,8 @@ export const login = async (req: Request, res: Response) => {
 export const refresh = async (req: Request, res: Response) => {
   const refreshToken = req.body.refreshToken || req.cookies?.refreshToken;
 
+  console.debug('[auth] refresh called - token present:', Boolean(refreshToken));
+
   if (!refreshToken) {
     return res.status(401).json({ error: 'Refresh token required / ریفریش ٹوکن درکار ہے' });
   }
@@ -157,7 +167,9 @@ export const refresh = async (req: Request, res: Response) => {
   try {
     // Look up token in database
     const tokenResult = await db.query('SELECT * FROM refresh_tokens WHERE token = $1 AND revoked = false', [refreshToken]);
+    console.debug('[auth] refresh token DB lookup count:', tokenResult.rows.length);
     if (tokenResult.rows.length === 0) {
+      console.warn('[auth] refresh failed - token not found or revoked');
       return res.status(403).json({ error: 'Invalid or revoked refresh token / غلط یا منسوخ شدہ ریفریش ٹوکن' });
     }
 
@@ -165,6 +177,7 @@ export const refresh = async (req: Request, res: Response) => {
 
     // Check expiration
     if (new Date(tokenRow.expires_at) < new Date()) {
+      console.warn('[auth] refresh failed - token expired for token id:', tokenRow.id);
       return res.status(403).json({ error: 'Expired refresh token / زائد المیعاد ریفریش ٹوکن' });
     }
 
@@ -198,6 +211,8 @@ export const refresh = async (req: Request, res: Response) => {
       sameSite: 'strict',
       maxAge: 7 * 24 * 60 * 60 * 1000
     });
+
+    console.debug('[auth] refresh successful - issued new tokens for user id:', user.id);
 
     return res.status(200).json({
       accessToken: newAccessToken,
@@ -328,6 +343,53 @@ export const me = async (req: AuthenticatedRequest, res: Response) => {
     return res.status(200).json({ user: result.rows[0] });
   } catch (err) {
     console.error('Fetch me error:', err);
+    return res.status(500).json({ error: 'Server error / سرور کی خرابی' });
+  }
+};
+
+export const seedAdmin = async (req: Request, res: Response) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({ error: 'Seed route disabled in production / پیداواری ماحول میں سیڈ روٹ غیر فعال ہے' });
+  }
+
+  const {
+    email = 'admin@fixkarachi.local',
+    password = 'Admin123!',
+    full_name = 'Fix Karachi Admin',
+  } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ error: 'Admin email and password are required / ایڈمن ای میل اور پاس ورڈ درکار ہیں' });
+  }
+
+  try {
+    const existing = await db.query('SELECT * FROM users WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      const user = existing.rows[0];
+      if (user.role === 'admin' || user.role === 'authority') {
+        return res.status(200).json({ message: 'Admin user already exists / ایڈمن صارف پہلے سے موجود ہے', user: { email: user.email, role: user.role } });
+      }
+
+      await db.query('UPDATE users SET role = $1 WHERE id = $2', ['admin', user.id]);
+      return res.status(200).json({ message: 'Existing user promoted to admin / موجودہ صارف کو ایڈمن بنایا گیا', user: { email: user.email, role: 'admin' } });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(password, salt);
+    const result = await db.query(
+      `INSERT INTO users (full_name, email, phone, password_hash, city, cnic, role, is_verified, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, full_name, email, role`,
+      [full_name, email, '', passwordHash, 'Karachi', null, 'admin', true, true],
+    );
+
+    return res.status(201).json({
+      message: 'Admin seeded successfully / ایڈمن کامیابی کے ساتھ بن گیا',
+      user: result.rows[0],
+      password,
+    });
+  } catch (err) {
+    console.error('Seed admin error:', err);
     return res.status(500).json({ error: 'Server error / سرور کی خرابی' });
   }
 };

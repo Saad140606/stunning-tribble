@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { LoadingScreen } from './components/LoadingScreen';
 import { OnboardingScreen } from './components/OnboardingScreen';
 import { HomeScreen } from './components/HomeScreen';
+import { motion, AnimatePresence } from 'motion/react';
 
 const ReportScreen = React.lazy(() => import('./components/ReportScreen').then(m => ({ default: m.ReportScreen })));
 const LeafletMapScreen = React.lazy(() => import('./components/LeafletMapScreen').then(m => ({ default: m.LeafletMapScreen })));
@@ -22,6 +23,7 @@ import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage';
 import { AdminApp } from './admin/AdminLayout';
 import { TransparencyScreen } from './screens/TransparencyScreen';
+import { LandingPage } from './pages/LandingPage';
 import { SOSButton } from './components/SOSButton';
 import { findLocalDuplicate } from './utils/duplicateDetection';
 import { apiFetch } from './services/api';
@@ -31,7 +33,10 @@ import { EmergencyAlertBanner } from './components/notifications/EmergencyAlertB
 import { NotificationsPage } from './components/notifications/NotificationsPage';
 import { createNotification, updateUserNotificationLocation } from './services/notificationService';
 import { useMediaQuery } from './hooks/useMediaQuery';
-import { Bell, Search, User as UserIcon } from 'lucide-react';
+import {
+  Bell, Search, User as UserIcon, X, MapPin, ThumbsUp, Flag, Heart, MessageCircle, Clock,
+  AlertTriangle, Trash2, Lightbulb, Droplets, ShieldAlert, Zap
+} from 'lucide-react';
 
 export interface Report {
   id: string;
@@ -170,35 +175,15 @@ function DesktopLayout({
         <div className="pt-8 px-6 pb-20">
           {children}
         </div>
+        <div className="fixed bottom-20 right-4 z-40">
+          <SOSButton />
+        </div>
       </div>
     </div>
   );
 }
 
-function TabletLayout({
-  currentScreen,
-  user,
-  onScreenChange,
-  onToggleLanguage,
-  languageLabel,
-  children,
-}: AppLayoutProps) {
-  return (
-    <div className="fk-app-shell fk-app-shell-tablet bg-[#0e1417] min-h-screen">
-      <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
-      <DesktopNavigation
-        currentScreen={currentScreen}
-        onScreenChange={onScreenChange}
-        onToggleLanguage={onToggleLanguage}
-        languageLabel={languageLabel}
-        isOnline={user.isOnline}
-      />
-      <div className="fk-app-content pt-20">
-        {children}
-      </div>
-    </div>
-  );
-}
+
 
 function MobileLayout({ currentScreen, user, onScreenChange, children }: AppLayoutProps) {
   return (
@@ -213,7 +198,28 @@ function MobileLayout({ currentScreen, user, onScreenChange, children }: AppLayo
             language={user.language}
           />
         </div>
-        <div className="fixed bottom-20 right-4 z-[40]">
+        <div className="fixed bottom-20 right-4 z-40">
+          <SOSButton />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TabletLayout({ currentScreen, user, onScreenChange, onToggleLanguage, languageLabel, children }: AppLayoutProps) {
+  return (
+    <div className="fk-app-shell fk-app-shell-tablet bg-[#0e1417] min-h-screen">
+      <TopBar currentScreen={currentScreen} onOpenNotifications={() => onScreenChange('notifications')} />
+      <div className="fk-app-content pt-20 pb-8">
+        {children}
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f2040]/80 backdrop-blur-2xl border-t border-white/5">
+          <BottomNavigation
+            currentScreen={currentScreen}
+            onScreenChange={onScreenChange}
+            language={user.language}
+          />
+        </div>
+        <div className="fixed bottom-20 right-4 z-40">
           <SOSButton />
         </div>
       </div>
@@ -271,6 +277,24 @@ function mapApiComplaintToReport(item: any): Report {
   };
 }
 
+const categoryColors: Record<string, string> = {
+  pothole: '#FF6B35', road: '#FF6B35',
+  garbage: '#00C896',
+  streetlight: '#FFB800',
+  water: '#00D4FF',
+  sewerage: '#8B5CF6', drainage: '#8B5CF6',
+  safety: '#FF3B3B',
+};
+
+const categoryIcons: Record<string, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
+  pothole: AlertTriangle, road: AlertTriangle,
+  garbage: Trash2,
+  streetlight: Lightbulb,
+  water: Droplets,
+  sewerage: Zap, drainage: Zap,
+  safety: ShieldAlert,
+};
+
 function CitizenApp() {
   const { user: authUser } = useAuth();
   const { notify } = useNotifications();
@@ -286,7 +310,50 @@ function CitizenApp() {
   });
   const [reports, setReports] = useState<Report[]>([]);
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
+  const [newComment, setNewComment] = useState('');
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useState(false);
+
+  useEffect(() => {
+    setNewComment('');
+  }, [selectedReport]);
+
+  const activeReport = selectedReport
+    ? reports.find(r => r.id === selectedReport.id) || selectedReport
+    : null;
+
+  const handleCommentSubmit = (e: React.FormEvent, reportId: string) => {
+    e.preventDefault();
+    if (newComment.trim()) {
+      handleAddComment(reportId, newComment.trim());
+      setNewComment('');
+    }
+  };
+
+  const t = translations[user.language];
+
+  const formatTimeAgo = (timestamp: Date) => {
+    const ts = timestamp instanceof Date ? timestamp : new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - ts.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    if (diffMins < 1) return t.justNow;
+    if (diffMins < 60) return `${diffMins}${t.minutesAgo}`;
+    if (diffHours < 24) return `${diffHours}${t.hoursAgo}`;
+    return `${diffDays}${t.daysAgo}`;
+  };
+
+  const getStatusStyle = (status: Report['status']) => {
+    switch (status) {
+      case 'reported': return { bg: 'rgba(255,107,53,0.15)', color: '#FF6B35', text: t.statusReported };
+      case 'inprogress': return { bg: 'rgba(255,184,0,0.15)', color: '#FFB800', text: t.statusInProgress };
+      case 'resolved': return { bg: 'rgba(0,200,150,0.15)', color: '#00C896', text: t.statusResolved };
+      case 'emergency': return { bg: 'rgba(255,59,59,0.18)', color: '#FF3B3B', text: t.statusEmergency };
+      case 'flagged': return { bg: 'rgba(139,92,246,0.15)', color: '#8B5CF6', text: t.statusFlagged };
+      default: return { bg: 'rgba(0,212,255,0.1)', color: '#8BA3C7', text: status };
+    }
+  };
 
   // Manage RTL direction
   useEffect(() => {
@@ -903,9 +970,16 @@ function CitizenApp() {
               <p className="text-xs text-[#4A6080] font-semibold" style={{ fontFamily: "'Plus Jakarta Sans'" }}>Loading civic screen...</p>
             </div>
           }>
-            {currentScreen !== 'map' && (
-              <div className="fk-screen-content">
-                {currentScreen === 'home' && (
+            <AnimatePresence mode="wait">
+              {currentScreen === 'home' && (
+                <motion.div
+                  key="home"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25 }}
+                  className="fk-screen-content w-full"
+                >
                   <HomeScreen
                     reports={reports}
                     user={user}
@@ -920,31 +994,66 @@ function CitizenApp() {
                     onReportAgain={() => setCurrentScreen('report')}
                     onLanguageChange={handleLanguageChange}
                   />
-                )}
+                </motion.div>
+              )}
 
-                {currentScreen === 'analytics' && (
+              {currentScreen === 'analytics' && (
+                <motion.div
+                  key="analytics"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25 }}
+                  className="fk-screen-content w-full"
+                >
                   <AnalyticsScreen
                     reports={reports}
                     user={user}
                     layoutMode={layoutMode}
                   />
-                )}
+                </motion.div>
+              )}
 
-                {currentScreen === 'report' && (
+              {currentScreen === 'report' && (
+                <motion.div
+                  key="report"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25 }}
+                  className="fk-screen-content w-full"
+                >
                   <ReportScreen
                     user={user}
                     layoutMode={layoutMode}
                     onSubmit={handleSubmitReport}
                     onCancel={() => setCurrentScreen('home')}
                   />
-                )}
+                </motion.div>
+              )}
 
-                {currentScreen === 'notifications' && (
+              {currentScreen === 'notifications' && (
+                <motion.div
+                  key="notifications"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25 }}
+                  className="fk-screen-content w-full"
+                >
                   <NotificationsPage />
-                )}
+                </motion.div>
+              )}
 
-                {/* FIX 1D: Filter by authUser?.uid (not hardcoded 'current-user') */}
-                {currentScreen === 'profile' && (
+              {currentScreen === 'profile' && (
+                <motion.div
+                  key="profile"
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -15 }}
+                  transition={{ duration: 0.25 }}
+                  className="fk-screen-content w-full"
+                >
                   <ProfileScreen
                     reports={reports.filter(r => r.userId === authUser?.uid)}
                     user={user}
@@ -953,26 +1062,349 @@ function CitizenApp() {
                     onToggleOnline={() => setUser(prev => ({ ...prev, isOnline: !prev.isOnline }))}
                     onReportAgain={() => setCurrentScreen('report')}
                   />
-                )}
-              </div>
-            )}
+                </motion.div>
+              )}
 
-            {currentScreen === 'map' && (
-              <LeafletMapScreen
-                reports={reports}
-                user={user}
-                layoutMode={layoutMode}
-                onReportSelect={setSelectedReport}
-                onUpvote={handleUpvote}
-                onVerify={handleVerify}
-              />
-            )}
+              {currentScreen === 'map' && (
+                <motion.div
+                  key="map"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full h-full"
+                >
+                  <LeafletMapScreen
+                    reports={reports}
+                    user={user}
+                    layoutMode={layoutMode}
+                    onReportSelect={setSelectedReport}
+                    onUpvote={handleUpvote}
+                    onVerify={handleVerify}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </React.Suspense>
         </div>
 
         <Toaster />
+
+        {/* Global Detail Modal / Panel */}
+        <AnimatePresence>
+          {activeReport && (
+            <>
+              {/* Backdrop — mobile */}
+              <motion.div
+                className="fk-mobile-only"
+                style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 9998 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedReport(null)}
+              />
+
+              {/* Panel */}
+              <motion.div
+                style={{
+                  position: 'fixed',
+                  zIndex: 9999,
+                  background: '#0A1628',
+                  overflowY: 'auto',
+                }}
+                className="fk-detail-panel"
+                initial={{ x: '100%', opacity: 0 }}
+                animate={{ x: 0, opacity: 1 }}
+                exit={{ x: '100%', opacity: 0 }}
+                transition={{ type: 'spring', damping: 30, stiffness: 400 }}
+              >
+                {/* Panel Header */}
+                <div
+                  style={{
+                    position: 'sticky', top: 0,
+                    padding: '16px 20px',
+                    background: 'rgba(10,22,40,0.95)',
+                    borderBottom: '1px solid rgba(0,212,255,0.08)',
+                    backdropFilter: 'blur(12px)',
+                    zIndex: 10,
+                    display: 'flex', alignItems: 'flex-start', gap: 12,
+                  }}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                      {(() => {
+                        const catColor = categoryColors[activeReport.type] || '#00D4FF';
+                        const Icon = categoryIcons[activeReport.type] || MapPin;
+                        return (
+                          <div style={{ width: 28, height: 28, borderRadius: 8, background: `${catColor}20`, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
+                            <Icon className="w-3.5 h-3.5" style={{ color: catColor }} />
+                          </div>
+                        );
+                      })()}
+                      <h3 style={{ fontSize: 15, fontWeight: 700, color: '#F0F4FF', lineHeight: 1.3 }}>
+                        {activeReport.title}
+                      </h3>
+                    </div>
+                    <p style={{ fontSize: 12, color: '#4A6080' }}>
+                      {activeReport.ward} • {activeReport.street} • {formatTimeAgo(activeReport.timestamp)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setSelectedReport(null)}
+                    style={{ padding: 8, borderRadius: 10, background: 'rgba(0,212,255,0.08)', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    <X className="w-4 h-4" style={{ color: '#8BA3C7' }} />
+                  </button>
+                </div>
+
+                <div style={{ padding: '20px' }}>
+                  {/* Status + Priority */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                    {(() => {
+                      const s = getStatusStyle(activeReport.status);
+                      return (
+                        <span style={{ fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 20, background: s.bg, color: s.color }}>
+                          {s.text}
+                        </span>
+                      );
+                    })()}
+                    {activeReport.priority === 'high' && (
+                      <span style={{ fontSize: 12, fontWeight: 600, padding: '6px 14px', borderRadius: 20, background: 'rgba(255,59,59,0.15)', color: '#FF3B3B' }}>
+                        {t.highPriority}
+                      </span>
+                    )}
+                    <span style={{ fontSize: 12, color: '#4A6080', padding: '6px 0', marginLeft: 'auto' }}>
+                      {formatTimeAgo(activeReport.timestamp)}
+                    </span>
+                  </div>
+
+                  {/* Location */}
+                  <div
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      padding: '12px 14px', borderRadius: 12, marginBottom: 16,
+                      background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)',
+                    }}
+                  >
+                    <MapPin className="w-4 h-4" style={{ color: '#00D4FF', flexShrink: 0 }} />
+                    <div>
+                      <p style={{ fontSize: 13, color: '#F0F4FF', fontWeight: 500 }}>
+                        {activeReport.ward}, {activeReport.street}
+                      </p>
+                      <p style={{ fontSize: 11, color: '#4A6080', marginTop: 2 }}>
+                        {activeReport.coordinates.lat.toFixed(4)}, {activeReport.coordinates.lng.toFixed(4)}
+                        {activeReport.distance > 0 && ` • ${activeReport.distance.toFixed(1)}${t.kmAway}`}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  {activeReport.imageUrl && (
+                    <div
+                      style={{
+                        width: '100%',
+                        aspectRatio: '16/9',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        marginBottom: 16,
+                        border: '1px solid rgba(0, 212, 255, 0.1)',
+                        background: 'rgba(0, 212, 255, 0.02)',
+                      }}
+                    >
+                      <img
+                        src={activeReport.imageUrl}
+                        alt={activeReport.title}
+                        style={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                        }}
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Description */}
+                  <p style={{ fontSize: 14, color: '#C8D8F0', lineHeight: 1.65, marginBottom: 16 }}>
+                    {activeReport.description}
+                  </p>
+
+                  {/* AI Tag */}
+                  <div
+                    style={{
+                      padding: '12px 14px', borderRadius: 12, marginBottom: 20,
+                      background: 'rgba(0,212,255,0.05)', border: '1px solid rgba(0,212,255,0.1)',
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <span style={{ fontSize: 12, color: '#00D4FF', fontWeight: 600 }}>⚙️ AI Classification</span>
+                      <span style={{ fontSize: 12, color: '#00D4FF' }}>{activeReport.aiConfidence}% confidence</span>
+                    </div>
+                    <div style={{ height: 4, background: 'rgba(0,212,255,0.1)', borderRadius: 2 }}>
+                      <div style={{ height: '100%', borderRadius: 2, width: `${activeReport.aiConfidence}%`, background: 'linear-gradient(90deg, #00D4FF, #0077BB)' }} />
+                    </div>
+                    <p style={{ fontSize: 11, color: '#4A6080', marginTop: 6 }}>{activeReport.aiTag}</p>
+                  </div>
+
+                  {/* Community Verification System */}
+                  <div
+                    style={{
+                      padding: '16px',
+                      borderRadius: 16,
+                      marginBottom: 20,
+                      background: activeReport.flag_count && activeReport.flag_count >= 3 ? 'rgba(255,59,59,0.06)' : 'rgba(0,200,150,0.04)',
+                      border: `1px solid ${activeReport.flag_count && activeReport.flag_count >= 3 ? 'rgba(255,59,59,0.15)' : 'rgba(0,200,150,0.12)'}`,
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#F0F4FF', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        🛡️ {user.language === 'ur' ? 'کمیونٹی تصدیق' : 'Community Validation'}
+                      </span>
+                      <span
+                        style={{
+                          fontSize: 10,
+                          fontWeight: 700,
+                          padding: '3px 8px',
+                          borderRadius: 6,
+                          background: activeReport.flag_count && activeReport.flag_count >= 3 ? 'rgba(255,59,59,0.15)' : 'rgba(0,200,150,0.15)',
+                          color: activeReport.flag_count && activeReport.flag_count >= 3 ? '#FF3B3B' : '#00C896'
+                        }}
+                      >
+                        {activeReport.flag_count && activeReport.flag_count >= 3
+                          ? (user.language === 'ur' ? 'مشکوک / غلط رپورٹ' : 'Flagged/Suspicious')
+                          : (activeReport.verify_count ?? 0) >= 5
+                            ? (user.language === 'ur' ? 'کمیونٹی سے تصدیق شدہ ✓' : 'Community Verified ✓')
+                            : (user.language === 'ur' ? 'تصدیق کا انتظار' : 'Awaiting Validation')}
+                      </span>
+                    </div>
+
+                    <p style={{ fontSize: 12, color: '#8BA3C7', lineHeight: 1.4, marginBottom: 12 }}>
+                      {activeReport.flag_count && activeReport.flag_count >= 3
+                        ? (user.language === 'ur' 
+                            ? 'انتباہ: شہریوں کی جانب سے اس مسئلے کو غلط یا نامناسب قرار دیا گیا ہے۔' 
+                            : 'Warning: This issue has been flagged multiple times by citizens as inappropriate or fake.')
+                        : (user.language === 'ur'
+                            ? 'شہریوں کی مدد کریں۔ اگر مسئلہ واقعی موجود ہے تو تصدیق کریں، یا غلط ہونے کی صورت میں رپورٹ کریں۔'
+                            : 'Help municipal workers prioritize this issue. Verify if it is real, or flag it if it is spam or incorrect.')}
+                    </p>
+
+                    <div style={{ display: 'flex', gap: 10 }}>
+                      {/* Verify Button */}
+                      <motion.button
+                        onClick={() => handleVerify(activeReport.id)}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '11px',
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: activeReport.hasUserVerified ? 'rgba(0,200,150,0.15)' : 'rgba(0,212,255,0.06)',
+                          color: activeReport.hasUserVerified ? '#00C896' : '#8BA3C7',
+                          border: `1px solid ${activeReport.hasUserVerified ? 'rgba(0,200,150,0.3)' : 'rgba(0,212,255,0.12)'}`,
+                        }}
+                        whileTap={{ scale: 0.97 }}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" style={{ color: activeReport.hasUserVerified ? '#00C896' : '#8BA3C7' }} />
+                        {user.language === 'ur' ? 'تصدیق' : 'Verify'} ({activeReport.verify_count || 0})
+                      </motion.button>
+
+                      {/* Flag/Spam Button */}
+                      <motion.button
+                        onClick={() => {
+                          handleFlag(activeReport.id);
+                          setSelectedReport(null);
+                        }}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          padding: '11px',
+                          borderRadius: 12,
+                          fontSize: 12,
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          background: 'rgba(255,59,59,0.06)',
+                          color: '#FF3B3B',
+                          border: '1px solid rgba(255,59,59,0.15)',
+                        }}
+                        whileTap={{ scale: 0.97 }}
+                      >
+                        <Flag className="w-3.5 h-3.5" style={{ color: '#FF3B3B' }} />
+                        {user.language === 'ur' ? 'غلط رپورٹ' : 'Flag Spam'} ({activeReport.flag_count || 0})
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  {/* Comments */}
+                  <h4 style={{ fontWeight: 700, color: '#F0F4FF', marginBottom: 12, fontSize: 14 }}>
+                    💬 {t.comments} ({activeReport.comments?.length || 0})
+                  </h4>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+                    {(activeReport.comments || []).map(comment => (
+                      <div
+                        key={comment.id}
+                        style={{ padding: '12px 14px', borderRadius: 14, background: '#0F2040', border: '1px solid rgba(0,212,255,0.06)' }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600, color: '#00D4FF' }}>{comment.author}</span>
+                          <span style={{ fontSize: 11, color: '#4A6080' }}>{formatTimeAgo(comment.timestamp)}</span>
+                        </div>
+                        <p style={{ fontSize: 13, color: '#B0C8E8' }}>{comment.text}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Add comment */}
+                  <form onSubmit={(e) => handleCommentSubmit(e, activeReport.id)} style={{ display: 'flex', gap: 10 }}>
+                    <input
+                      placeholder={t.addComment}
+                      value={newComment}
+                      onChange={e => setNewComment(e.target.value)}
+                      className="fk-input"
+                      style={{ flex: 1, height: 44, borderRadius: 12, fontSize: 13 }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newComment.trim()}
+                      style={{
+                        padding: '0 18px', borderRadius: 12, fontSize: 13, fontWeight: 700,
+                        background: newComment.trim() ? 'linear-gradient(135deg, #00D4FF, #0099CC)' : 'rgba(0,212,255,0.08)',
+                        color: newComment.trim() ? '#081223' : '#4A6080',
+                        border: 'none', cursor: newComment.trim() ? 'pointer' : 'default',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      {t.postComment}
+                    </button>
+                  </form>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
     </Layout>
   );
+}
+
+function LandingPageSwitcher() {
+  const { user } = useAuth();
+  if (user) {
+    return (
+      <ProtectedRoute>
+        <CitizenApp />
+      </ProtectedRoute>
+    );
+  }
+  return <LandingPage />;
 }
 
 export default function App() {
@@ -981,6 +1413,7 @@ export default function App() {
       <AuthProvider>
         <NotificationProvider>
           <Routes>
+          <Route path="/" element={<LandingPageSwitcher />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />

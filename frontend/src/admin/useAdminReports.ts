@@ -89,7 +89,11 @@ export function useAdminReports() {
     const load = async () => {
       try {
         const response = await apiFetch('/admin/complaints');
-        if (!response.ok) return;
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          console.error('Failed to load admin complaints:', response.status, errorData);
+          return;
+        }
         const data = await response.json();
         if (cancelled) return;
         const mapped = (data.complaints || []).map((item: any) => ({
@@ -113,7 +117,7 @@ export function useAdminReports() {
           longitude: item.longitude != null ? Number(item.longitude) : undefined,
           isDuplicate: item.isDuplicate ?? false,
         })) as AdminReport[];
-        if (mapped.length) setReports(mapped);
+        setReports(mapped);
       } catch (err) {
         console.error('Failed to load admin complaints:', err);
       }

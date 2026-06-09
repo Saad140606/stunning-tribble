@@ -5,6 +5,26 @@ import {
 } from 'recharts';
 import { Activity, CheckCircle2, Clock, FileText, Download, TrendingUp, Building2 } from 'lucide-react';
 import { AdminReport } from './useAdminReports';
+import { motion } from 'motion/react';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.06,
+    }
+  }
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 15 },
+  visible: { 
+    opacity: 1, 
+    y: 0,
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] }
+  }
+};
 
 const COLORS = {
   cyan: '#00D4FF',
@@ -132,7 +152,7 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
     const dateStr = date.toDateString();
     weeklyData.push({
       day: dayStr,
-      reports: reports.filter((r) => r.createdAt.toDateString() === dateStr).length || Math.floor(Math.random() * 15 + 5),
+      reports: reports.filter((r) => r.createdAt.toDateString() === dateStr).length,
     });
   }
 
@@ -182,9 +202,20 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
   return (
     <div className="space-y-5">
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
+      <motion.div 
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3"
+      >
         {stats.map((stat) => (
-          <div key={stat.label} className="p-4" style={glassCard}>
+          <motion.div 
+            variants={itemVariants}
+            whileHover={{ y: -4, borderColor: "rgba(0, 212, 255, 0.25)" }}
+            key={stat.label} 
+            className="p-4 cursor-pointer" 
+            style={glassCard}
+          >
             <div className="flex items-center justify-between mb-3">
               <div
                 className="w-9 h-9 rounded-lg flex items-center justify-center"
@@ -216,12 +247,17 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
             >
               {stat.label}
             </div>
-          </div>
+          </motion.div>
         ))}
-      </div>
+      </motion.div>
 
       {/* Charts Row — District + Category Pie */}
-      <div className="grid lg:grid-cols-2 gap-4">
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15, duration: 0.5 }}
+        className="grid lg:grid-cols-2 gap-4"
+      >
         {/* District Bar Chart */}
         <div className="p-5" style={glassCard}>
           <h2 style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15, marginBottom: 16 }}>
@@ -272,10 +308,16 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Weekly Trend Area Chart */}
-      <div className="p-5" style={glassCard}>
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="p-5" 
+        style={glassCard}
+      >
         <h2 style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15, marginBottom: 16 }}>
           Weekly Reporting Trend
         </h2>
@@ -304,10 +346,16 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
             </AreaChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </motion.div>
 
       {/* Department Performance */}
-      <div className="p-5" style={glassCard}>
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25, duration: 0.5 }}
+        className="p-5" 
+        style={glassCard}
+      >
         <div className="flex items-center justify-between mb-5">
           <h2 className="flex items-center gap-2" style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15 }}>
             <Building2 className="w-5 h-5" style={{ color: T.accent }} /> Department Performance
@@ -374,10 +422,16 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
         ) : (
           <p className="text-sm" style={{ color: T.muted }}>No department assignments yet. Assign reports to see performance data.</p>
         )}
-      </div>
+      </motion.div>
 
       {/* Recent Activity */}
-      <div className="p-5" style={glassCard}>
+      <motion.div 
+        initial={{ opacity: 0, y: 15 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+        className="p-5" 
+        style={glassCard}
+      >
         <h2 className="mb-4" style={{ color: T.onSurface, fontWeight: 700, fontFamily: T.fontHeadline, fontSize: 15 }}>
           Recent Activity
         </h2>
@@ -413,7 +467,7 @@ export function DashboardScreen({ reports }: { reports: AdminReport[] }) {
             </div>
           ))}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }
